@@ -1,0 +1,25 @@
+{{template "base" .}}
+{{define "content"}}
+   <div class="container-fluid">
+		<h3 class="text-center mt-2">Old Book	</h3>	
+		<div class="row p-3">
+			{{$oldbooks := index .Data "oldbooks"}}
+                {{range $oldbooks}}
+					<div class="col-md-3">
+				<div class="card crd-ho mt-3">
+					<div class="card-body text-center">
+						<img alt="" src="static/book/{{.PhotoName}}" style="width:120px;height:170px" class="img-thumblin">
+						<p>{{.BookName}} </p>
+						<p>{{.Author}} </p>
+						<p>Categories: {{.BookCategory}}
+						<div class="row">
+							<a href="book_detail/{{.BookID}}" class="btn btn-sm btn-success col-md-6 ml-5 ">View Details</a>
+							<a href="" class="btn btn-sm btn-danger col-md-6 ml-2 "><i class="fa-solid fa-dollar-sign"></i>{{.Price}}</a>
+						</div>
+					</div>	
+			</div>
+		</div>
+			{{end}}
+		</div>
+	</div>
+{{end}}

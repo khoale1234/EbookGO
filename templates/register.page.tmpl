@@ -1,0 +1,44 @@
+    {{template "base" .}}
+    {{define "content"}}
+        	<div class="container">
+		<div class="row">
+			<div class="col-md-4 offset-md-4">
+				<div class="card mt-3">
+					<h2 class="text-center mt-2">Register</h2>
+					<div class="card-body p-4">
+						<form action="/register" method="post" novalidate>
+							<div class="form-group mt-4">
+								<label for="exampleInputName">Full Name:</label><input
+									type="text" class="form-control" id="exampleInputName"
+									placeholder="Enter Full Name" required name="name">
+							</div>
+							<div class="form-group mt-4">
+								<label for="exampleInputPhone">Phone:</label><input
+									type="text" class="form-control" id="exampleInputPhone"
+									placeholder="Enter Phone number" required name="phone">
+							</div>
+							<div class="form-group mt-4">
+								<label for="exampleInputEmail">Email Address:</label><input
+									type="email" class="form-control" id="exampleInputEmail"
+									aria-describeby="emailHelp" placeholder="Enter Email" required name="email">
+							</div>
+							<div class="form-group mt-4">
+								<label for="exampleInputPassword">Password:</label><input
+									type="password" class="form-control" id="exampleInputPassword"
+									placeholder="Enter Password" required name="password">
+							</div>
+							<div class="form-check mt-4" >
+								<input type="checkbox" class="form-check-input"
+									id="exampleCheck" name="fcheck"><label for="example-check"
+									class="form-check-label">agree Terms & Conditions</label>
+							</div>
+							<div class="d-flex justify-content-center">
+								<button type="submit" class="btn btn-primary">Sign in</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+    {{end}}

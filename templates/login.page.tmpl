@@ -1,0 +1,48 @@
+{{template "base" .}}
+{{define "content"}}
+    <div class="container">
+		<div class="row">
+			<div class="col-md-4 offset-md-4">
+				<div class="card mt-3">
+					<h2 class="text-center mt-2">Login</h2>
+					<c:if test="${not empty sucMsg }">
+						<h5 class="text-center text-success">${sucMsg }</h5>
+						<c:remove var="sucMsg" scope="session"/>
+					</c:if>
+					<div class="card-body p-4">
+						<form action="/login" method="post" novalidate>
+                            <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+							<div class="form-group mt-4">
+								<label for="exampleInputEmail">Email Address:</label>
+                                {{with .Form.Errors.Get "email"}}
+                                   <label class="text-danger">{{.}}</label>
+                                {{end}}
+                                <input
+									type="email" class="form-control {{with .Form.Errors.Get "email"}} is-invalid {{end}}" id="exampleInputEmail"
+									aria-describeby="emailHelp" placeholder="Enter Email" required name="email">
+							</div>
+							<div class="form-group mt-4">
+								<label for="exampleInputPassword">Password:</label>
+                                 {{with .Form.Errors.Get "password"}}
+                                <label class="text-danger">{{.}}</label>
+                               {{end}}
+                                <input
+									type="password" class="form-control" id="exampleInputPassword"
+									placeholder="Enter Password" required name="password">
+							</div>
+							<div class="form-check mt-4" >
+								<input type="checkbox" class="form-check-input {{with .Form.Errors.Get "password"}} is-invalid {{end}}"
+									id="exampleCheck" name="check"><label for="example-check"
+									class="form-check-label">Agree terms </label>
+							</div>
+							<div class="text-center">
+								<button type="submit" class="btn btn-primary">Login</button><br>
+								<a href="/register">Create Account</a>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{{end}}

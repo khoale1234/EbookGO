@@ -1,0 +1,147 @@
+{{template "base" .}}
+{{define "content"}}
+     <div class="container-fluid back-img">
+        <h1 class="text-center text-dark p-5">
+            <i class="fa-solid fa-book"></i> Ebook management system
+        </h1>
+    </div>
+    <div>
+        <div class="container">
+            <h3 class="text-center">Recent Book</h3>
+            <div class="row">
+                {{$recentbooks:= index .Data "recentbooks"}}
+                {{range $recentbooks}}
+                <div class="col-md-3">
+                    <div class="card crd-ho">
+                        <div class="card-body text-center">
+                            <img alt="" src="static/book/{{.PhotoName}}" style="width:120px;height:170px" class="img-thumblin">
+                            <p>
+                                {{.BookName}}
+                            </p>
+                            <p>
+                                {{.Author}}
+                            </p>
+                            {{ if eq .BookCategory "Old Book" }}
+                            <p>
+                              Categories: {{.BookCategory}}
+                            </p>
+                            <div class="row text-center p-1">
+                                <a href="" class="btn btn-sm btn-success col-md-6 ml-5">View Details</a>
+                                <a href="" class="btn btn-sm btn-danger col-md-6 ml-2">
+                                    <i class="fa-solid fa-dollar-sign"></i>
+                                     {{.Price}}
+                                </a>
+                            </div>
+                            {{else}}
+                            <p>
+                                Categories: {{.BookCategory}}
+                            </p>
+                            <div class="row text-center">
+                                <!-- <% if (us == null) { %> -->
+                                <a href="login.jsp" class="btn bnt-sm btn-danger col-md-4 ml-2">Add Cart</a>
+                                <!-- <% } else { %> -->
+                                <a href="" class="btn bnt-sm btn-danger col-md-4 ml-2">Add Cart</a>
+                                <!-- <% } %> -->
+                                <a href="" class="btn btn-sm btn-success col-md-4 ml-1">View Details</a>
+                                <a href="" class="btn btn-sm btn-danger col-md-4 ml-1">
+                                    <!-- <i class="fa-solid fa-dollar-sign"></i><%= b.getPrice() %> -->
+                                </a>
+                            </div>
+                            {{end}}
+                        </div>
+                    </div>
+                </div>
+               {{end}}
+            </div>
+        </div>
+    </div>
+    <!-- end recent book -->
+    <div class="text-center">
+        <a href="/all_recent_books" class="btn btn-danger btn-sm text-while mt-5">View all</a>
+    </div>
+    <hr class="mt-1">
+    <div>
+        <div class="container">
+            <h3 class="text-center">New Book</h3>
+            <div class="row">
+                {{$newbooks := index .Data "newbooks"}}
+                {{range $newbooks}}
+                <div class="col-md-3">
+                    <div class="card crd-ho">
+                        <div class="card-body text-center">
+                            <img alt="" src="static/book/{{.PhotoName}}" style="width:120px;height:170px" class="img-thumblin">
+                            <p>{{.BookName}}</p>
+                            <p>{{.BookCategory}}</p>
+                            {{ if eq .BookCategory "New Book" }}
+                            <p>Categories:{{.BookCategory}} </p>
+                            <div class="row text-center p-1">
+                                <a href="" class="btn btn-sm btn-success col-md-6 ml-5">View Details</a>
+                                <a href="" class="btn btn-sm btn-danger col-md-6 ml-2">
+                                    <i class="fa-solid fa-dollar-sign"></i><p>{{.Price}}</p>
+                                </a>
+                            </div>
+                           {{else}}
+                            <p>Categories: {{.BookCategory}}</p>
+                            <div class="row text-center">
+                                <a href="" class="btn bnt-sm btn-danger col-md-4 ml-2">Add Cart</a>
+                                <a href="" class="btn btn-sm btn-success col-md-4 ml-1">View Details</a>
+                                <a href="" class="btn btn-sm btn-danger col-md-4 ml-1">
+                                    <i class="fa-solid fa-dollar-sign"></i><p>{{.Price}}</p>
+                                </a>
+                            </div>
+                        {{end}}
+                        </div>
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+    <!-- end new book -->
+    <div class="text-center">
+        <a href="all-recent-books.jsp" class="btn btn-danger btn-sm text-while mt-5">View all</a>
+    </div>
+    <hr class="mt-1">
+    <div>
+        <div class="container">
+            <h3 class="text-center">Old Book</h3>
+            <div class="row">
+                {{$oldbooks:= index .Data "oldbooks"}}
+                {{range $oldbooks}}
+                <div class="col-md-3">
+                    <div class="card crd-ho">
+                        <div class="card-body text-center">
+                            <img alt="" src="static/book/{{.PhotoName}}" style="width:120px;height:170px" class="img-thumblin">
+                            <p>{{.BookName}}</p>
+                            <p>{{.Author}}</p>
+                            {{ if eq .BookCategory "Old Book" }}
+                            <p>Categories:{{.BookCategory}}</p>
+                            <div class="row text-center p-1">
+                                <a href="" class="btn btn-sm btn-success col-md-6 ml-5">View Details</a>
+                                <a href="" class="btn btn-sm btn-danger col-md-6 ml-2">
+                                    <i class="fa-solid fa-dollar-sign"></i><p>{{.Price}}</p>
+                                </a>
+                            </div>
+                            {{else}}
+                            <p>Categories: {{.BookCategory}}</p>
+                            <div class="row text-center">
+                                <a href="" class="btn bnt-sm btn-danger col-md-4 ml-2">Add Cart</a>
+                                <a href="" class="btn btn-sm btn-success col-md-4 ml-1">View Details</a>
+                                <a href="" class="btn btn-sm btn-danger col-md-4 ml-1">
+                                    <i class="fa-solid fa-dollar-sign"></i><p>{{.Price}}</p>
+                                </a>
+                            </div>
+                        {{end}}
+                        </div>
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+    <!-- end old book -->
+    <div class="text-center">
+        <a href="all-recent-books.jsp" class="btn btn-danger btn-sm text-while mt-5">View all</a>
+    </div>
+    <hr class="mt-1">
+{{end}}
