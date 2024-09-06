@@ -5,10 +5,9 @@
 			<div class="col-md-4 offset-md-4">
 				<div class="card mt-3">
 					<h2 class="text-center mt-2">Login</h2>
-					<c:if test="${not empty sucMsg }">
-						<h5 class="text-center text-success">${sucMsg }</h5>
-						<c:remove var="sucMsg" scope="session"/>
-					</c:if>
+					{{with .Error}}
+						<h5 class="text-center text-danger">{{.}}</h5>
+					{{end}}
 					<div class="card-body p-4">
 						<form action="/login" method="post" novalidate>
                             <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">

@@ -23,6 +23,10 @@ func NewRenderer(a *config.AppConfig) {
 }
 func AddDefaultData(td *models.TemplateData, r *http.Request) *models.TemplateData {
 	td.CSRFToken = nosurf.Token(r)
+	user, ok := r.Context().Value("user").(models.User)
+	if ok {
+		td.Data["User"] = user
+	}
 	return td
 }
 

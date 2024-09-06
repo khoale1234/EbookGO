@@ -282,7 +282,7 @@ func (m *postgresDBRepo) AddBook(b models.BookDtls) error {
 func (m *postgresDBRepo) GetBookById(id int) (models.BookDtls, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := `select * from bookdtls where bookId=$1`
+	query := `select * from bookdtsl where bookId=$1`
 	row := m.DB.QueryRowContext(ctx, query, id)
 	var book models.BookDtls
 	err := row.Scan(
@@ -417,4 +417,22 @@ func (m *postgresDBRepo) CheckUser(email string) bool {
 		f = true
 	}
 	return f
+}
+func (m *postgresDBRepo) FindUserByID(id int) (models.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var user models.User
+	query := `select * from user where id=$1`
+	row := m.DB.QueryRowContext(ctx, query, id)
+	err := row.Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.Phone_no,
+		&user.Password,
+	)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
 }

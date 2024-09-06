@@ -9,9 +9,12 @@ import (
 	"Ebook/internal/render"
 	"Ebook/internal/repository"
 	dbrepo "Ebook/internal/repository/dprepo"
+	"strconv"
 
 	"log"
 	"net/http"
+
+	"github.com/go-chi/chi"
 )
 
 // Repo the repository used by the handlers
@@ -97,7 +100,22 @@ func (m *Repository) AllRecentBooks(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "all_old_books.page.tmpl", &models.TemplateData{})
 }
 func (m *Repository) BookDetail(w http.ResponseWriter, r *http.Request) {
-	render.Template(w, r, "book_detail.page.tmpl", &models.TemplateData{})
+	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	log.Println(ID)
+	if err != nil {
+		log.Println(err)
+	}
+	var book models.BookDtls
+	book, err = m.DB.GetBookById(ID)
+	log.Println(book)
+	if err != nil {
+		helpers.ServerError(w, err)
+	}
+	data := make(map[string]interface{})
+	data["book"] = book
+	render.Template(w, r, "book_detail.page.tmpl", &models.TemplateData{
+		Data: data,
+	})
 }
 func (m *Repository) AddCart(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "cart.page.tmpl", &models.TemplateData{})
@@ -112,6 +130,11 @@ func (m *Repository) Login(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "login.page.tmpl", &models.TemplateData{
 		Form: forms.New(nil),
 	})
+}
+func (m *Repository) Logout(w http.ResponseWriter, r *http.Request) {
+	_ = m.App.Session.Destroy(r.Context())
+	_ = m.App.Session.RenewToken(r.Context())
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 func (m *Repository) PostLogin(w http.ResponseWriter, r *http.Request) {
 	err := m.App.Session.RenewToken(r.Context())
@@ -134,13 +157,19 @@ func (m *Repository) PostLogin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	_, _, err = m.DB.Login(email, password)
+	id, _, err := m.DB.Login(email, password)
+	var errMsg string
 	if err != nil {
-		log.Println("login failed")
-	} else {
-		log.Println("login successful")
+		log.Println(err)
+		errMsg = "Login failed"
+		render.Template(w, r, "login.page.tmpl", &models.TemplateData{
+			Error: errMsg,
+		})
+		return
 	}
-
+	m.App.Session.Put(r.Context(), "userId", id)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+	render.Template(w, r, "login.page.tmpl", &models.TemplateData{})
 }
 func (m *Repository) OldBooks(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "old_books.page.tmpl", &models.TemplateData{})
@@ -194,4 +223,7 @@ func (m *Repository) UserAddress(w http.ResponseWriter, r *http.Request) {
 }
 func (m *Repository) Setting(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "setting.page.tmpl", &models.TemplateData{})
+}
+func (m *Repository) Helpline(w http.ResponseWriter, r *http.Request) {
+	render.Template(w, r, "helpline.page.tmpl", &models.TemplateData{})
 }

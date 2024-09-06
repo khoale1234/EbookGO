@@ -21,4 +21,5 @@ type DatabaseRepo interface {
 	GetBookSearch(search string) ([]models.BookDtls, error)
 	DeleteBookC(bid, uid, cid int) error
 	CheckUser(email string) bool
+	FindUserByID(id int) (models.User, error)
 }
