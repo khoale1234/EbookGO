@@ -9,10 +9,10 @@ import (
 	"Ebook/internal/render"
 	"Ebook/internal/repository"
 	dbrepo "Ebook/internal/repository/dprepo"
-	"strconv"
-
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi"
 )
@@ -58,10 +58,13 @@ func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 		helpers.ServerError(w, err)
 	}
 	data["oldbooks"] = oldbooks
+	fmt.Println("render home")
+
 	render.Template(w, r, "index.page.tmpl", &models.TemplateData{
 		Data: data,
 	})
 }
+
 func (m *Repository) AllNewBooks(w http.ResponseWriter, r *http.Request) {
 	var newbooks []models.BookDtls
 	newbooks, err := m.DB.GetNewBooks()
@@ -132,16 +135,19 @@ func (m *Repository) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 func (m *Repository) Logout(w http.ResponseWriter, r *http.Request) {
-	_ = m.App.Session.Destroy(r.Context())
-	_ = m.App.Session.RenewToken(r.Context())
+	// Call the delete session function
+	session, _ := m.App.Session.Get(r, "posty")
+	delete(session.Values, "userId")
+	err := session.Save(r, w)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
+
 func (m *Repository) PostLogin(w http.ResponseWriter, r *http.Request) {
-	err := m.App.Session.RenewToken(r.Context())
-	if err != nil {
-		log.Fatalf("Error on post %v", err)
-	}
-	err = r.ParseForm()
+	err := r.ParseForm()
 	if err != nil {
 		log.Println(err)
 	}
@@ -167,7 +173,13 @@ func (m *Repository) PostLogin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	m.App.Session.Put(r.Context(), "userId", id)
+	session, _ := m.App.Session.Get(r, "posty")
+	session.Values["userId"] = id
+	err = session.Save(r, w)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 	render.Template(w, r, "login.page.tmpl", &models.TemplateData{})
 }
@@ -207,11 +219,9 @@ func (m *Repository) PostRegister(w http.ResponseWriter, r *http.Request) {
 	err = m.DB.Register(user)
 	if err != nil {
 		log.Println(err)
-		m.App.Session.Put(r.Context(), "error", "Invalid register credentials")
 		http.Redirect(w, r, "/register", http.StatusSeeOther)
 		return
 	}
-	m.App.Session.Put(r.Context(), "flash", "Register successfully")
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 
 }
@@ -222,6 +232,11 @@ func (m *Repository) UserAddress(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "user_address.page.tmpl", &models.TemplateData{})
 }
 func (m *Repository) Setting(w http.ResponseWriter, r *http.Request) {
+	session, _ := m.App.Session.Get(r, "posty")
+	_, ok := session.Values["userId"].(int)
+	if !ok {
+		http.Redirect(w, r, "login", http.StatusSeeOther)
+	}
 	render.Template(w, r, "setting.page.tmpl", &models.TemplateData{})
 }
 func (m *Repository) Helpline(w http.ResponseWriter, r *http.Request) {

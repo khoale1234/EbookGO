@@ -5,7 +5,7 @@ import (
 	"html/template"
 	"log"
 
-	"github.com/alexedwards/scs/v2"
+	"github.com/gorilla/sessions"
 )
 
 type AppConfig struct {
@@ -14,6 +14,6 @@ type AppConfig struct {
 	InfoLog       *log.Logger
 	ErrorLog      *log.Logger
 	InProduction  bool
-	Session       *scs.SessionManager
+	Session       sessions.CookieStore
 	MailChan      chan models.MailData
 }

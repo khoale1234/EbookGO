@@ -66,31 +66,30 @@
 				</form>
 			</div>
 		</div>
-		<!-- <c:if test="${not empty userobj }"> -->
+        {{$User:= index .Data "User"}}
+        {{$IsAuth:= index .Data "IsAuthenticated"}}
+        {{if $User}}
 			<div class="col-md-3">
 			<div class=mr-auto>
-				<a href="checkout.jsp"><i class="fas fa-cart-plus fa-2x text-primary"></i></a>
-				 <a href="login.jsp" class="btn btn-success mb-3"><i class="fas fa-user"></i> ${userobj.name }</a> 
-				 <a href="logout" class="btn btn-primary mb-3"><i class="fa-solid fa-plus"></i> Log out</a>
+				<a href="/checkout"><i class="fas fa-cart-plus fa-2x text-primary"></i></a>
+				 <a href="" class="btn btn-success mb-3"><i class="fas fa-user"></i>{{$User.Name}}</a> 
+				 <a href="/logout" class="btn btn-primary mb-3"><i class="fa-solid fa-plus"></i> Log out</a>
 				 
 			</div>
 		</div>
-		
-		<!-- </c:if> -->
-		<!-- <c:if test="${ empty userobj }">
+		{{else}}
 			<div class="col-md-3">
 			<div class=mr-auto>
-				 <a href="login.jsp" class="btn btn-success"><i class="fa-solid fa-right-to-bracket"></i> Login</a> 
-				 <a href="register.jsp" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Sign in</a>
+				 <a href="/login" class="btn btn-success"><i class="fa-solid fa-right-to-bracket"></i>Login</a> 
+				 <a href="/register" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Sign in</a>
 			</div>
 		</div>
-		
-		</c:if> -->
+		{{end}}
 		
 	</div>
 	<nav class="navbar navbar-expand-lg navbar-dark bg-custom">
 		<div class="container-fluid">
-			<a class="navbar-brand" href="#"><i class="fa-solid fa-house"></i></a>
+			<a class="navbar-brand" href="/"><i class="fa-solid fa-house"></i></a>
 			<button class="navbar-toggler" type="button"
 				data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
 				aria-controls="navbarSupportedContent" aria-expanded="false"
@@ -107,7 +106,7 @@
 				</ul>
 				<form class="d-flex">
 					<a href="/setting" class="btn btn-light my-2 my-sm-0 p-2" type="submit" style="border-radius:15px "><i class="fa-solid fa-gear"></i> Setting</a> 
-					<a href="helpline.jsp" class="btn btn-light my-2 my-sm-0 p-2" type="submit" style="border-radius:15px "><i class="fa-brands fa-rocketchat"></i> Contact us</a> 
+					<a href="/helpline" class="btn btn-light my-2 my-sm-0 p-2" type="submit" style="border-radius:15px "><i class="fa-brands fa-rocketchat"></i> Contact us</a> 
 				</form>
 			</div>
 		</div>

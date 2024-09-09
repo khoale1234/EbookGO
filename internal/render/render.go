@@ -23,10 +23,7 @@ func NewRenderer(a *config.AppConfig) {
 }
 func AddDefaultData(td *models.TemplateData, r *http.Request) *models.TemplateData {
 	td.CSRFToken = nosurf.Token(r)
-	user, ok := r.Context().Value("user").(models.User)
-	if ok {
-		td.Data["User"] = user
-	}
+	td.IsAuthenticated = 0
 	return td
 }
 
@@ -48,8 +45,13 @@ func Template(w http.ResponseWriter, r *http.Request, tmpl string, td *models.Te
 
 	buf := new(bytes.Buffer)
 	td = AddDefaultData(td, r)
+	user, ok := r.Context().Value("user").(models.User)
+	log.Println("user is :", user)
+	if ok {
+		td.IsAuthenticated = 1
+		td.Data["User"] = user
+	}
 	_ = t.Execute(buf, td)
-
 	_, err := buf.WriteTo(w)
 	if err != nil {
 		fmt.Println("error writing template to browser", err)

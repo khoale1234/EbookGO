@@ -9,16 +9,14 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
-	"github.com/alexedwards/scs/v2"
+	"github.com/gorilla/sessions"
 )
 
 const portNumber = ":8080"
 
 var InfoLog *log.Logger
 var app config.AppConfig
-var session *scs.SessionManager
 var ErrorLog *log.Logger
 
 func main() {
@@ -51,12 +49,11 @@ func run() (*driver.DB, error) {
 	ErrorLog = log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 	app.ErrorLog = ErrorLog
 	// set up the session
-	session = scs.New()
-	session.Lifetime = 24 * time.Hour
-	session.Cookie.Persist = true
-	session.Cookie.SameSite = http.SameSiteLaxMode
-	session.Cookie.Secure = app.InProduction
-	app.Session = session
+
+	session := sessions.NewCookieStore([]byte("HiOYcmnxUuj4KoQGgks63DB1DOGponWX"))
+	session.Options.HttpOnly = true
+	session.Options.SameSite = http.SameSiteLaxMode
+	app.Session = *session
 	log.Println("Connecting to database ...")
 	db, err := driver.ConnectSQL("host=localhost port=5432 dbname=book_app user=postgres password=07052002")
 	log.Println("Database connected")
@@ -71,7 +68,8 @@ func run() (*driver.DB, error) {
 
 	app.TemplateCache = tc
 	app.UseCache = false
-
+	rep := NewRep(&app, db)
+	NewMid(rep)
 	repo := handlers.NewRepo(&app, db)
 	handlers.NewHandlers(repo)
 

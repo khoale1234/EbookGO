@@ -422,7 +422,7 @@ func (m *postgresDBRepo) FindUserByID(id int) (models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var user models.User
-	query := `select * from user where id=$1`
+	query := `select * from users where uid=$1`
 	row := m.DB.QueryRowContext(ctx, query, id)
 	err := row.Scan(
 		&user.ID,

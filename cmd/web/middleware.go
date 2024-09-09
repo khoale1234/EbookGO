@@ -1,7 +1,10 @@
 package main
 
 import (
+	"Ebook/internal/config"
+	"Ebook/internal/driver"
 	"Ebook/internal/repository"
+	dbrepo "Ebook/internal/repository/dprepo"
 	"context"
 	"log"
 	"net/http"
@@ -9,7 +12,25 @@ import (
 	"github.com/justinas/nosurf"
 )
 
-var DB repository.DatabaseRepo
+var Rep *Repo
+
+type Repo struct {
+	App *config.AppConfig
+	DB  repository.DatabaseRepo
+}
+
+// NewRepo creates a new repository
+func NewRep(a *config.AppConfig, db *driver.DB) *Repo {
+	return &Repo{
+		App: a,
+		DB:  dbrepo.NewPostgresRepo(db.SQL, a),
+	}
+}
+
+// NewHandlers sets the repository for the handlers
+func NewMid(r *Repo) {
+	Rep = r
+}
 
 // NoSurf adds CSRF protection to all Post requests
 func NoSurf(next http.Handler) http.Handler {
@@ -23,11 +44,6 @@ func NoSurf(next http.Handler) http.Handler {
 	return crsfHandler
 }
 
-// loads and saves the session on every request
-func SessionLoad(next http.Handler) http.Handler {
-	return session.LoadAndSave(next)
-}
-
 //	func Auth(next http.Handler) http.Handler {
 //		return http.HandlerFunc((func(w http.ResponseWriter, r *http.Request) {
 //			if !helpers.IsAuthenticated(r) {
@@ -38,19 +54,23 @@ func SessionLoad(next http.Handler) http.Handler {
 //			next.ServeHTTP(w, r)
 //		}))
 //	}
-func Authenticate(next http.Handler) http.Handler {
+func (m *Repo) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Println("hello")
-		id, ok := app.Session.Get(r.Context(), "userId").(int)
+		session, _ := m.App.Session.Get(r, "posty")
+		id, ok := session.Values["userId"].(int)
+		log.Println(id)
 		if !ok {
 			next.ServeHTTP(w, r)
 			return
 		}
-		user, err := DB.FindUserByID(id)
+		user, err := m.DB.FindUserByID(id)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
 		}
+
+		log.Println(user)
 		ctx := context.WithValue(r.Context(), "user", user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

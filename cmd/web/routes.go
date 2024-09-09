@@ -12,7 +12,7 @@ import (
 func routes(app *config.AppConfig) http.Handler {
 	mux := chi.NewRouter()
 	mux.Use(middleware.Recoverer)
-	mux.Use(SessionLoad)
+	mux.Use(Rep.Authenticate)
 	mux.Get("/login", handlers.Repo.Login)
 	mux.Get("/register", handlers.Repo.Register)
 	mux.Post("/register", handlers.Repo.PostRegister)
@@ -24,6 +24,7 @@ func routes(app *config.AppConfig) http.Handler {
 	mux.Get("/cart", handlers.Repo.AddCart)
 	mux.Get("/checkout", handlers.Repo.Checkout)
 	mux.Get("/edit-profile", handlers.Repo.EditProfile)
+	mux.Get("/logout", handlers.Repo.Logout)
 	mux.Post("/login", handlers.Repo.PostLogin)
 	mux.Get("/old-books", handlers.Repo.OldBooks)
 	mux.Get("/order-success", handlers.Repo.OrderSuccess)

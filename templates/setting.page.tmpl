@@ -1,12 +1,8 @@
     {{template "base" .}}
     {{define "content"}}
-        <c:if test="${ empty userobj }">
-		<c:redirect url="login.jsp"></c:redirect>
-	</c:if>
-	<%@include file="all_components/navbar.jsp"%>
-	<% User u= (User)session.getAttribute("userobj");%>
+	{{$User:= index .Data "User"}}
 	<div class="container">
-		<h3 class="text-center p-2">Hello,<%=u.getName() %></h3>
+		<h3 class="text-center p-2">Hello,{{$User.Name}}</h3>
 		<div class="row p-2">
 			<div class="col-md-4">
 				<a href="sell_books.jsp">
