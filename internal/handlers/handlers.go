@@ -10,8 +10,11 @@ import (
 	"Ebook/internal/repository"
 	dbrepo "Ebook/internal/repository/dprepo"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/go-chi/chi"
@@ -184,7 +187,31 @@ func (m *Repository) PostLogin(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "login.page.tmpl", &models.TemplateData{})
 }
 func (m *Repository) OldBooks(w http.ResponseWriter, r *http.Request) {
-	render.Template(w, r, "old_books.page.tmpl", &models.TemplateData{})
+	session, _ := m.App.Session.Get(r, "posty")
+	id, ok := session.Values["userId"].(int)
+	if !ok {
+		http.Redirect(w, r, "login", http.StatusSeeOther)
+	}
+	var user models.User
+	user, err := m.DB.FindUserByID(id)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	var oldbook []models.BookDtls
+	oldbook, err = m.DB.GetBooksByOld(user.Email, "Old Book")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	stringMap := make(map[string]string)
+	stringMap["Email"] = user.Email
+	data := make(map[string]interface{})
+	data["oldbooks"] = oldbook
+	render.Template(w, r, "old_books.page.tmpl", &models.TemplateData{
+		Data:      data,
+		StringMap: stringMap,
+	})
 }
 func (m *Repository) OrderSuccess(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "order_success.page.tmpl", &models.TemplateData{})
@@ -237,8 +264,139 @@ func (m *Repository) Setting(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		http.Redirect(w, r, "login", http.StatusSeeOther)
 	}
-	render.Template(w, r, "setting.page.tmpl", &models.TemplateData{})
+	render.Template(w, r, "setting.page.tmpl", &models.TemplateData{
+		Data: nil,
+	})
 }
 func (m *Repository) Helpline(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "helpline.page.tmpl", &models.TemplateData{})
+}
+func (m *Repository) SellBook(w http.ResponseWriter, r *http.Request) {
+	session, _ := m.App.Session.Get(r, "posty")
+	_, ok := session.Values["userId"].(int)
+	if !ok {
+		http.Redirect(w, r, "login", http.StatusSeeOther)
+	}
+	render.Template(w, r, "sell_book.page.tmpl", &models.TemplateData{})
+}
+func (m *Repository) PostSellBook(w http.ResponseWriter, r *http.Request) {
+	log.Println("hello from sellbook")
+
+	// Đảm bảo gọi ParseMultipartForm trước
+	err := r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Lấy dữ liệu từ form
+	userEmail := r.FormValue("user")
+	bookName := r.FormValue("name")
+	author := r.FormValue("author")
+	price := r.FormValue("price")
+
+	log.Println("giá trị của form:", price)
+
+	// Lấy file từ form
+	file, handler, err := r.FormFile("bookimg")
+	if err != nil {
+		log.Println("file là:", handler.Filename)
+		http.Error(w, "Unable to get file", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Kiểm tra dữ liệu bắt buộc
+	form := forms.New(r.PostForm)
+	form.Required("name", "author", "price")
+
+	oldbook := models.BookDtls{
+		BookName:     bookName,
+		Author:       author,
+		Price:        price,
+		BookCategory: "Old Book",
+		Status:       "Active",
+		PhotoName:    handler.Filename,
+		Email:        userEmail,
+	}
+
+	err = m.DB.AddBook(oldbook)
+	if err != nil {
+		log.Println(err)
+	}
+
+	var flash string
+	if err == nil {
+		path := filepath.Join("static", "book")
+		fmt.Println("File Path:", path)
+
+		// Tạo thư mục nếu nó không tồn tại
+		if err := os.MkdirAll(path, os.ModePerm); err != nil {
+			http.Error(w, "Unable to create directory", http.StatusInternalServerError)
+			return
+		}
+
+		// Ghi file vào đường dẫn đã xây dựng
+		filePath := filepath.Join(path, handler.Filename)
+		out, err := os.Create(filePath)
+		if err != nil {
+			http.Error(w, "Unable to create file", http.StatusInternalServerError)
+			flash = "Something went wrong on server"
+			return
+		}
+		defer out.Close()
+
+		// Ghi nội dung file
+		_, err = io.Copy(out, file)
+		if err != nil {
+			http.Error(w, "Unable to write file", http.StatusInternalServerError)
+			flash = "Something went wrong on server"
+			return
+		}
+		fmt.Println("File written to:", filePath)
+		flash = "Sell book successfully"
+	}
+
+	render.Template(w, r, "sell_book.page.tmpl", &models.TemplateData{
+		Flash: flash,
+	})
+}
+func (m *Repository) DeleteOldBook(w http.ResponseWriter, r *http.Request) {
+	email := r.URL.Query().Get("email")
+	log.Println(email)
+	bid, err := strconv.Atoi(r.URL.Query().Get("bid"))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	err = m.DB.OldBookDelete(email, "Old Book", bid)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	http.Redirect(w, r, "/old-books", http.StatusInternalServerError)
+}
+func (m *Repository) GetOrderByUser(w http.ResponseWriter, r *http.Request) {
+	session, _ := m.App.Session.Get(r, "posty")
+	id, ok := session.Values["userId"].(int)
+	if !ok {
+		http.Redirect(w, r, "login", http.StatusSeeOther)
+	}
+	user, err := m.DB.FindUserByID(id)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	orderbooks, err := m.DB.GetBookOrder(user.Email)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	data := make(map[string]interface{})
+	data["orderbooks"] = orderbooks
+	render.Template(w, r, "order.page.tmpl", &models.TemplateData{
+		Data: data,
+	})
+
 }

@@ -4,6 +4,7 @@ import (
 	"Ebook/internal/models"
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -269,9 +270,10 @@ func (m *postgresDBRepo) GetSomeRecentBooks() ([]models.BookDtls, error) {
 	return books, nil
 }
 func (m *postgresDBRepo) AddBook(b models.BookDtls) error {
+	log.Println("hello from repo")
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := `INSERT INTO bookdtls (bookname, author, price, bookCategory, status, photo,email) VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	query := `INSERT INTO bookdtsl (bookname, author, price, bookCategory, status, photo,email) VALUES ($1, $2, $3, $4, $5, $6, $7)`
 	_, err := m.DB.ExecContext(ctx, query, b.BookName, b.Author, b.Price, b.BookCategory, b.Status, b.PhotoName, b.Email)
 	if err != nil {
 		return err
@@ -303,7 +305,7 @@ func (m *postgresDBRepo) GetBookById(id int) (models.BookDtls, error) {
 func (m *postgresDBRepo) UpdateEditBook(book models.BookDtls) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := `update bookdtls set bookname=$1, author=$2, price=$3, status=$4 where bookId=$5`
+	query := `update bookdtsl set bookname=$1, author=$2, price=$3, status=$4 where bookId=$5`
 	_, err := m.DB.ExecContext(ctx, query, book.BookName, book.Author, book.Price, book.Status, book.BookID)
 	if err != nil {
 		return err
@@ -313,7 +315,7 @@ func (m *postgresDBRepo) UpdateEditBook(book models.BookDtls) error {
 func (m *postgresDBRepo) DeleteBook(id int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := `delete from bookdtls where bookId=$1`
+	query := `delete from bookdtsl where bookId=$1`
 	_, err := m.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
@@ -325,7 +327,7 @@ func (m *postgresDBRepo) GetBookSearch(search string) ([]models.BookDtls, error)
 
 	query := `
 		SELECT * 
-		FROM bookdtls 
+		FROM bookdtsl 
 		WHERE (bookname LIKE ? OR author LIKE ? OR bookCategory LIKE ?) AND status = ?
 	`
 
@@ -435,4 +437,75 @@ func (m *postgresDBRepo) FindUserByID(id int) (models.User, error) {
 		return user, err
 	}
 	return user, nil
+}
+func (m *postgresDBRepo) GetBooksByOld(email string, category string) ([]models.BookDtls, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var books []models.BookDtls
+	query := `Select * from bookdtsl where email=$1 and bookCategory=$2`
+	rows, err := m.DB.QueryContext(ctx, query, email, category)
+	if err != nil {
+		return books, err
+	}
+	for rows.Next() {
+		var book models.BookDtls
+		err := rows.Scan(
+			&book.BookID,
+			&book.BookName,
+			&book.Author,
+			&book.Price,
+			&book.BookCategory,
+			&book.Status,
+			&book.PhotoName,
+			&book.Email,
+		)
+		if err != nil {
+			return books, err
+		}
+		books = append(books, book)
+	}
+	if err = rows.Err(); err != nil {
+		return books, nil
+	}
+	return books, nil
+}
+func (m *postgresDBRepo) OldBookDelete(email string, category string, bid int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := `delete from bookdtsl where bookCategory=$1 and email=$2 and bookId=$3 `
+	_, err := m.DB.ExecContext(ctx, query, category, email, bid)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (m *postgresDBRepo) GetBookOrder(email string) ([]models.BookOrder, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := `select * from order where email =$1`
+	var booksOrder []models.BookOrder
+	rows, err := m.DB.QueryContext(ctx, query, email)
+	if err != nil {
+		return booksOrder, err
+	}
+	for rows.Next() {
+		var book models.BookOrder
+		err = rows.Scan(
+			&book.ID,
+			&book.Orderid,
+			&book.UserName,
+			&book.Email,
+			&book.FullAddress,
+			&book.Phone_no,
+			&book.BookName,
+			&book.Author,
+			&book.Price,
+			&book.PaymentMethod,
+		)
+		if err != nil {
+			return booksOrder, err
+		}
+		booksOrder = append(booksOrder, book)
+	}
+	return booksOrder, err
 }

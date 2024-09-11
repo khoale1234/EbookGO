@@ -4,7 +4,6 @@ import (
 	"Ebook/internal/config"
 	"Ebook/internal/models"
 	"bytes"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -21,9 +20,22 @@ var app *config.AppConfig
 func NewRenderer(a *config.AppConfig) {
 	app = a
 }
+
 func AddDefaultData(td *models.TemplateData, r *http.Request) *models.TemplateData {
+	// Gán token CSRF
 	td.CSRFToken = nosurf.Token(r)
-	td.IsAuthenticated = 0
+
+	// Kiểm tra và khởi tạo map td.Data nếu cần
+	if td.Data == nil {
+		td.Data = make(map[string]interface{})
+	}
+
+	// Kiểm tra context để lấy user
+	user, ok := r.Context().Value("user").(models.User)
+	if ok {
+		td.Data["User"] = user
+	}
+
 	return td
 }
 
@@ -32,38 +44,47 @@ func Template(w http.ResponseWriter, r *http.Request, tmpl string, td *models.Te
 	var tc map[string]*template.Template
 
 	if app.UseCache {
-		// get the template cache from the app config
 		tc = app.TemplateCache
 	} else {
-		tc, _ = CreateTemplateCache()
+		var err error
+		tc, err = CreateTemplateCache()
+		if err != nil {
+			log.Fatal("Cannot create template cache:", err)
+		}
 	}
 
+	// Kiểm tra xem template có tồn tại không
 	t, ok := tc[tmpl]
 	if !ok {
-		log.Fatal("Could not get template from template cache")
+		http.Error(w, "Template not found", http.StatusInternalServerError)
+		return
 	}
 
 	buf := new(bytes.Buffer)
-	td = AddDefaultData(td, r)
-	user, ok := r.Context().Value("user").(models.User)
-	log.Println("user is :", user)
-	if ok {
-		td.IsAuthenticated = 1
-		td.Data["User"] = user
+	if td == nil {
+		td = &models.TemplateData{Data: map[string]interface{}{}}
 	}
-	_ = t.Execute(buf, td)
-	_, err := buf.WriteTo(w)
+	td = AddDefaultData(td, r)
+
+	// Thực hiện template
+	err := t.Execute(buf, td)
 	if err != nil {
-		fmt.Println("error writing template to browser", err)
+		http.Error(w, "Error rendering template", http.StatusInternalServerError)
+		log.Println("Error executing template:", err)
+		return
 	}
 
+	// Ghi buffer vào response
+	_, err = buf.WriteTo(w)
+	if err != nil {
+		http.Error(w, "Error writing template to browser", http.StatusInternalServerError)
+		log.Println("Error writing buffer to response:", err)
+	}
 }
 
 // CreateTemplateCache creates a template cache as a map
 func CreateTemplateCache() (map[string]*template.Template, error) {
-
 	myCache := map[string]*template.Template{}
-
 	pages, err := filepath.Glob("./templates/*.page.tmpl")
 	if err != nil {
 		return myCache, err
@@ -76,7 +97,8 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 			return myCache, err
 		}
 
-		matches, err := filepath.Glob("./templates/*.page.tmpl")
+		// Kiểm tra layout templates
+		matches, err := filepath.Glob("./templates/*.layout.tmpl")
 		if err != nil {
 			return myCache, err
 		}
@@ -91,5 +113,6 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 		myCache[name] = ts
 	}
 
+	log.Println("Templates loaded into cache:", myCache)
 	return myCache, nil
 }

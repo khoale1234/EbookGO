@@ -11,8 +11,8 @@ import (
 
 func routes(app *config.AppConfig) http.Handler {
 	mux := chi.NewRouter()
+	// mux.Use(NoSurf)
 	mux.Use(middleware.Recoverer)
-	mux.Use(Rep.Authenticate)
 	mux.Get("/login", handlers.Repo.Login)
 	mux.Get("/register", handlers.Repo.Register)
 	mux.Post("/register", handlers.Repo.PostRegister)
@@ -28,14 +28,17 @@ func routes(app *config.AppConfig) http.Handler {
 	mux.Post("/login", handlers.Repo.PostLogin)
 	mux.Get("/old-books", handlers.Repo.OldBooks)
 	mux.Get("/order-success", handlers.Repo.OrderSuccess)
+	mux.Get("/order", handlers.Repo.GetOrderByUser)
 	mux.Get("/search", handlers.Repo.Search)
 	mux.Get("/user-address", handlers.Repo.UserAddress)
 	mux.Get("/setting", handlers.Repo.Setting)
 	mux.Get("/helpline", handlers.Repo.Helpline)
-
+	mux.Get("/sellbook", handlers.Repo.SellBook)
+	mux.Post("/sellbook", handlers.Repo.PostSellBook)
+	mux.Get("/delete_old_book", handlers.Repo.DeleteOldBook)
 	// Tạo file server cho tài nguyên tĩnh
 	fileServer := http.FileServer(http.Dir("./static/"))
 	mux.Handle("/static/*", http.StripPrefix("/static", fileServer))
 
-	return mux
+	return Rep.Authenticate(mux)
 }

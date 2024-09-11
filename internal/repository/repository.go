@@ -22,4 +22,7 @@ type DatabaseRepo interface {
 	DeleteBookC(bid, uid, cid int) error
 	CheckUser(email string) bool
 	FindUserByID(id int) (models.User, error)
+	GetBooksByOld(email string, category string) ([]models.BookDtls, error)
+	OldBookDelete(email string, category string, bid int) error
+	GetBookOrder(email string) ([]models.BookOrder, error)
 }

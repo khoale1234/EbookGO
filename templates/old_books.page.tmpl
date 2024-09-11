@@ -1,14 +1,5 @@
 {{template "base" .}}
 {{define "content"}}
-    		<c:if test="${ empty userobj }">
-					<c:redirect url="login.jsp"></c:redirect>
-				</c:if>
-				<c:if test="${not empty successMsg }">
-						<p class="text-center text-sucess">${successMsg}</p>
-					</c:if>
-					<c:if test="${not empty failedMsg }">
-						<p class="text-center text-danger">${failedMsg}</p>
-					</c:if>
 <div class="container p-5">
 	<table class="table table-striped">
   <thead>
@@ -21,21 +12,17 @@
     </tr>
   </thead>
   <tbody>
-  <%
-  	User u= (User)session.getAttribute("userobj");
-  	BookImp bookImp= new BookImp(DBconnect.getConnection());
-  	List<Book_dtls>list= bookImp.getBookByOld(u.getEmail(),"Old Book");
-  	for(Book_dtls b:list){
-  %>
+  {{$Email:= index .StringMap "Email"}}
+ {{$oldbooks:= index .Data "oldbooks"}}
+ {{range $oldbooks}}
   	<tr>
-      <th scope="row"><%=b.getBookName() %></th>
-      <td><%=b.getAuthor() %></td>
-      <td><%=b.getPrice() %><i class="fa-solid fa-dollar-sign"></i></td>
-      <td><%=b.getBookCategory()%></td>
-      <td><a href="delete_old_books?email=<%=u.getEmail() %>&&bid=<%=b.getBookID() %>" class="btn btn-sm btn-danger">Delete</a></td>
+      <th scope="row">{{.BookName}}</th>
+      <td>{{.Author}}</td>
+      <td>{{.Price}}<i class="fa-solid fa-dollar-sign"></i></td>
+      <td>{{.BookCategory}}<td>
+      <td><a href="/delete_old_book?email={{$Email}}&bid={{.BookID}}" class="btn btn-sm btn-danger">Delete</a></td>
     </tr>
-   <%} %>
-    
+  {{end}}
   </tbody>
 </table>
 </div>

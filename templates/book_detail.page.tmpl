@@ -2,6 +2,7 @@
 {{define "content"}}
 <div class="container">
 	<div class="row">
+	{{$User:= index .Data "User"}}
 	{{$book := index .Data "book"}}
 		<div class="col-md-6 text-center p-5 border bg-white">
 			<img alt="" src="static/book/{{$book.PhotoName}}" style="height: 190px;width: 150px"><br>
@@ -35,13 +36,12 @@
 					<a href="/" class="btn btn-sm btn-success col-md-4"><i class="fas fa-cart-plus"></i> Continue Shopping</a>
 					<a href="" class="btn btn-sm btn-danger col-md-2"><i class="fa-solid fa-dollar-sign"></i> 5</a>
 				{{else}}
-					if(u!=null){
-				
-					<a href="cart?bid=<%= b.getBookID() %>&uid=<%= u.getId() %>" class="btn btn-sm btn-primary col-md-3"><i class="fas fa-cart-plus"></i> Add Cart</a>
+					{{if $User}}
+					<a href="cart?bid={{$book.BookID}}&uid={{$User.ID}}" class="btn btn-sm btn-primary col-md-3"><i class="fas fa-cart-plus"></i> Add Cart</a>
 					<a href="" class="btn btn-sm btn-danger col-md-2"><i class="fa-solid fa-dollar-sign"></i> 5</a>
-					<%}else{ %>
+					{{else}}
 						<a href="" class="btn btn-sm btn-danger col-md-2"><i class="fa-solid fa-dollar-sign"></i> 5</a>
-					<%}%>
+					{{end}}
 				{{end}}
 			</div>
 		</div>

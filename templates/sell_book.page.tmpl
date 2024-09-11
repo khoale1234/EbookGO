@@ -1,0 +1,47 @@
+{{template "base" .}}
+{{define "content"}}
+<div class="container">
+    <div class="row">
+        <div class="col-md-4 offset-md-4 mt-5">
+            <div class="card">
+                {{$Flash := index .Data "Flash"}}
+                <div class="card-body">
+                    <h3 class="text-center text-primary">Sell Book</h3>
+                    {{if $Flash}}
+                        <h5 class="text-center text-success">{{.}}</h5>
+                    {{end}}
+                    <form action="/sellbook" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+                        {{$User := index .Data "User"}}
+                        <input type="hidden" value="{{$User.Email}}" name="user">
+                        
+                        <div class="form-group">
+                            <label for="exampleInputBookName">Book Name:</label>
+                            <input type="text" class="form-control" id="exampleInputBookName" placeholder="Enter Book Name" required name="name">
+                        </div>
+                        
+                        <div class="form-group mt-4">
+                            <label for="exampleInputAuthorName">Author Name:</label>
+                            <input type="text" class="form-control" id="exampleInputAuthorName" placeholder="Enter Author Name" required name="author">
+                        </div>
+                        
+                        <div class="form-group mt-4">
+                            <label for="exampleInputPrice">Price:</label>
+                            <input type="text" class="form-control" id="exampleInputPrice" placeholder="Enter Price" required name="price">
+                        </div>
+                        
+                        <div class="form-group mt-4">
+                            <label for="exampleFormControlFile">Upload Photo:</label>
+                            <input name="bookimg" type="file" class="form-control-file" id="exampleFormControlFile">
+                        </div>
+                        
+                        <div class="d-flex justify-content-center mt-4">
+                            <button type="submit" class="btn btn-primary">Sell</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
