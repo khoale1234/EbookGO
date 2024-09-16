@@ -25,4 +25,5 @@ require (
 	github.com/jackc/pgx/v4 v4.18.3
 	github.com/justinas/nosurf v1.1.1
 	github.com/toorop/go-dkim v0.0.0-20201103131630-e1cd1a0a5208 // indirect
+	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
 )

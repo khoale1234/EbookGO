@@ -18,6 +18,8 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi"
+	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/exp/rand"
 )
 
 // Repo the repository used by the handlers
@@ -107,7 +109,6 @@ func (m *Repository) AllRecentBooks(w http.ResponseWriter, r *http.Request) {
 }
 func (m *Repository) BookDetail(w http.ResponseWriter, r *http.Request) {
 	ID, err := strconv.Atoi(chi.URLParam(r, "id"))
-	log.Println(ID)
 	if err != nil {
 		log.Println(err)
 	}
@@ -124,13 +125,105 @@ func (m *Repository) BookDetail(w http.ResponseWriter, r *http.Request) {
 	})
 }
 func (m *Repository) AddCart(w http.ResponseWriter, r *http.Request) {
-	render.Template(w, r, "cart.page.tmpl", &models.TemplateData{})
+	bid, err := strconv.Atoi(r.URL.Query().Get("bid"))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	uid, err := strconv.Atoi(r.URL.Query().Get("uid"))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	book, err := m.DB.GetBookById(bid)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	price, err := strconv.ParseFloat(book.Price, 32)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	cart := models.Cart{
+		Bid:      bid,
+		Uid:      uid,
+		BookName: book.BookName,
+		Author:   book.Author,
+		Price:    price,
+	}
+	err = m.DB.AddCart(cart)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
 }
 func (m *Repository) Checkout(w http.ResponseWriter, r *http.Request) {
-	render.Template(w, r, "checkout.page.tmpl", &models.TemplateData{})
+	session, _ := m.App.Session.Get(r, "posty")
+	id, ok := session.Values["userId"].(int)
+	if !ok {
+		http.Redirect(w, r, "login", http.StatusSeeOther)
+	}
+	var cart []models.Cart
+	cart, totalPrice, err := m.DB.GetBookByUser(id)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	data := make(map[string]interface{})
+	data["cart"] = cart
+	data["totalPrice"] = totalPrice
+	render.Template(w, r, "checkout.page.tmpl", &models.TemplateData{
+		Data: data,
+	})
 }
 func (m *Repository) EditProfile(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "edit-profile.page.tmpl", &models.TemplateData{})
+}
+func (m *Repository) PostEditProfile(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Lấy giá trị từ form
+	userID, err := strconv.Atoi(r.FormValue("id"))
+	log.Println(userID)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	fullName := r.FormValue("fname")
+	phone := r.FormValue("fphone")
+	email := r.FormValue("femail")
+	password := r.FormValue("fpassword")
+	err = bcrypt.CompareHashAndPassword([]byte(m.DB.CheckPassword(userID)), []byte(password))
+	if err != nil {
+		warning := "Wrong Password"
+		render.Template(w, r, "edit-profile.page.tmpl", &models.TemplateData{
+			Form:    nil,
+			Warning: warning,
+		})
+	} else {
+		err = m.DB.UpdateProfile(fullName, email, phone, userID)
+		if err != nil {
+			log.Println("loi o day ne", err)
+			errMsg := "Something wrong on server"
+			render.Template(w, r, "edit-profile.page.tmpl", &models.TemplateData{
+				Form:  nil,
+				Error: errMsg,
+			})
+		} else {
+			flash := "Edited profile successfully"
+			render.Template(w, r, "edit-profile.page.tmpl", &models.TemplateData{
+				Form:  nil,
+				Flash: flash,
+			})
+		}
+
+	}
 }
 func (m *Repository) Login(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "login.page.tmpl", &models.TemplateData{
@@ -166,25 +259,36 @@ func (m *Repository) PostLogin(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	id, _, err := m.DB.Login(email, password)
-	var errMsg string
-	if err != nil {
-		log.Println(err)
-		errMsg = "Login failed"
-		render.Template(w, r, "login.page.tmpl", &models.TemplateData{
-			Error: errMsg,
-		})
-		return
+	if email == "admin@gmail.com" && password == "adminpassword" {
+		session, _ := m.App.Session.Get(r, "posty")
+		session.Values["userId"] = 5
+		err = session.Save(r, w)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, "/admin/home", http.StatusSeeOther)
+	} else {
+		id, _, err := m.DB.Login(email, password)
+		var errMsg string
+		if err != nil {
+			log.Println(err)
+			errMsg = "Login failed"
+			render.Template(w, r, "login.page.tmpl", &models.TemplateData{
+				Error: errMsg,
+			})
+			return
+		}
+		session, _ := m.App.Session.Get(r, "posty")
+		session.Values["userId"] = id
+		err = session.Save(r, w)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		render.Template(w, r, "login.page.tmpl", &models.TemplateData{})
 	}
-	session, _ := m.App.Session.Get(r, "posty")
-	session.Values["userId"] = id
-	err = session.Save(r, w)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
-	render.Template(w, r, "login.page.tmpl", &models.TemplateData{})
 }
 func (m *Repository) OldBooks(w http.ResponseWriter, r *http.Request) {
 	session, _ := m.App.Session.Get(r, "posty")
@@ -212,6 +316,7 @@ func (m *Repository) OldBooks(w http.ResponseWriter, r *http.Request) {
 		Data:      data,
 		StringMap: stringMap,
 	})
+
 }
 func (m *Repository) OrderSuccess(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "order_success.page.tmpl", &models.TemplateData{})
@@ -296,8 +401,6 @@ func (m *Repository) PostSellBook(w http.ResponseWriter, r *http.Request) {
 	author := r.FormValue("author")
 	price := r.FormValue("price")
 
-	log.Println("giá trị của form:", price)
-
 	// Lấy file từ form
 	file, handler, err := r.FormFile("bookimg")
 	if err != nil {
@@ -375,7 +478,8 @@ func (m *Repository) DeleteOldBook(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	http.Redirect(w, r, "/old-books", http.StatusInternalServerError)
+	http.Redirect(w, r, "/old-books", http.StatusSeeOther)
+
 }
 func (m *Repository) GetOrderByUser(w http.ResponseWriter, r *http.Request) {
 	session, _ := m.App.Session.Get(r, "posty")
@@ -399,4 +503,281 @@ func (m *Repository) GetOrderByUser(w http.ResponseWriter, r *http.Request) {
 		Data: data,
 	})
 
+}
+func (m *Repository) RemoveBook(w http.ResponseWriter, r *http.Request) {
+	bid, err := strconv.Atoi(r.URL.Query().Get("bid"))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	cid, err := strconv.Atoi(r.URL.Query().Get("cid"))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	uid, err := strconv.Atoi(r.URL.Query().Get("uid"))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	err = m.DB.DeleteBookC(bid, uid, cid)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	http.Redirect(w, r, "/checkout", http.StatusSeeOther)
+}
+func (m *Repository) Order(w http.ResponseWriter, r *http.Request) {
+	userID, err := strconv.Atoi(r.FormValue("id"))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	username := r.FormValue("username")
+	email := r.FormValue("email")
+	phone := r.FormValue("phone")
+	address := r.FormValue("address")
+	city := r.FormValue("city")
+	state := r.FormValue("state")
+	paymentMethod := r.FormValue("paymentmethod")
+	if paymentMethod == "noselect" {
+		// Thiết lập thông báo lỗi vào session (nếu sử dụng session)
+		// Ví dụ sử dụng gorilla/sessions
+		// session.Values["failedMsg"] = "please choose your payment method"
+		// session.Save(r, w)
+
+		// Chuyển hướng về checkout.jsp
+		session, _ := m.App.Session.Get(r, "posty")
+		session.Values["Error"] = "Please choose your payment method"
+		err = session.Save(r, w)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, "checkout.jsp", http.StatusSeeOther)
+		return
+	}
+	fullAdd := address + ", " + city + ", " + state
+	list, _, err := m.DB.GetBookByUser(int(userID))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	if list == nil {
+		session, _ := m.App.Session.Get(r, "posty")
+		session.Values["Error"] = "Add Item"
+		err = session.Save(r, w)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(w, r, "checkout", http.StatusSeeOther)
+	} else {
+		var orderList []models.BookOrder
+		for _, c := range list {
+			o := models.BookOrder{
+				Orderid:       fmt.Sprintf("BOOK-ORDER-00%d", rand.Intn(1000)),
+				UserName:      username,
+				Email:         email,
+				Phone_no:      phone,
+				FullAddress:   fullAdd,
+				BookName:      c.BookName,
+				Author:        c.Author,
+				Price:         fmt.Sprintf("%.2f", c.Price),
+				PaymentMethod: paymentMethod,
+			}
+			orderList = append(orderList, o)
+		}
+		err := m.DB.SaveOrder(orderList)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		err = m.DB.DeleteAllBookC(userID)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		http.Redirect(w, r, "order-success", http.StatusSeeOther)
+	}
+}
+func (m *Repository) SearchBook(w http.ResponseWriter, r *http.Request) {
+	searchString := r.FormValue("search")
+	log.Println("asdasdad", searchString)
+	var bookSearch []models.BookDtls
+	bookSearch, err := m.DB.GetBookSearch(searchString)
+	log.Println(bookSearch)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	data := make(map[string]interface{})
+	data["bookSearch"] = bookSearch
+	render.Template(w, r, "search.page.tmpl", &models.TemplateData{
+		Data: data,
+	})
+}
+func (m *Repository) AdminAllBooks(w http.ResponseWriter, r *http.Request) {
+	var books []models.BookDtls
+	books, err := m.DB.GetAllBooks()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	data := make(map[string]interface{})
+	data["books"] = books
+	render.Template(w, r, "admin-allbooks.page.tmpl", &models.TemplateData{
+		Data: data,
+	})
+}
+func (m *Repository) AdminHome(w http.ResponseWriter, r *http.Request) {
+	render.Template(w, r, "admin-home.page.tmpl", &models.TemplateData{})
+}
+func (m *Repository) PostEditBook(w http.ResponseWriter, r *http.Request) {
+	// Parse the form data
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+	// Get form values
+	bookID, _ := strconv.Atoi(r.FormValue("bid"))
+	bookName := r.FormValue("bname")
+	authorName := r.FormValue("Aname")
+	price, _ := strconv.ParseFloat(r.FormValue("bprice"), 32)
+	bookStatus := r.FormValue("bstatus")
+	log.Println("hello", bookName)
+	var errMsg string
+	var flash string
+	err = m.DB.UpdateEditBook(bookName, authorName, bookStatus, float32(price), bookID)
+	if err != nil {
+		log.Println(err)
+		errMsg = "Something wrong on server"
+		return
+	} else {
+		flash = "Edit book successfully"
+	}
+	render.Template(w, r, "admin-editbook.page.tmpl", &models.TemplateData{
+		Error: errMsg,
+		Flash: flash,
+	})
+}
+func (m *Repository) EditBook(w http.ResponseWriter, r *http.Request) {
+	bid, err := strconv.Atoi(r.URL.Query().Get("id"))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	book, err := m.DB.GetBookById(bid)
+	if err != nil {
+		log.Println(err)
+	}
+	data := make(map[string]interface{})
+	data["book"] = book
+	render.Template(w, r, "admin-editbook.page.tmpl", &models.TemplateData{
+		Data: data,
+	})
+}
+func (m *Repository) BookDelete(w http.ResponseWriter, r *http.Request) {
+	bid, err := strconv.Atoi(r.URL.Query().Get("id"))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	err = m.DB.DeleteBook(bid)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	http.Redirect(w, r, r.Referer(), http.StatusSeeOther)
+}
+func (m *Repository) AdminOrders(w http.ResponseWriter, r *http.Request) {
+	session, _ := m.App.Session.Get(r, "posty")
+	_, ok := session.Values["userId"].(int)
+	if !ok {
+		http.Redirect(w, r, "login", http.StatusSeeOther)
+	}
+	books, err := m.DB.GetAllOrder()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	data := make(map[string]interface{})
+	data["books"] = books
+	render.Template(w, r, "admin-order.page.tmpl", &models.TemplateData{
+		Data: data,
+	})
+}
+func (m *Repository) AdminAddBook(w http.ResponseWriter, r *http.Request) {
+	render.Template(w, r, "admin-addbook.page.tmpl", &models.TemplateData{})
+}
+func (m *Repository) PostAdminAddBook(w http.ResponseWriter, r *http.Request) {
+	log.Println("hello")
+	err := r.ParseMultipartForm(10 << 20) // Limit to 10 MB
+	if err != nil {
+		http.Error(w, "Unable to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Get form values
+	bookName := r.FormValue("bname")
+	authorName := r.FormValue("Aname")
+	price := r.FormValue("bprice")
+	bookType := r.FormValue("btype")
+	bookStatus := r.FormValue("bstatus")
+	file, handler, err := r.FormFile("bookimg")
+	if err != nil {
+		log.Println("file là:", handler.Filename)
+		http.Error(w, "Unable to get file", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+	book := models.BookDtls{
+		BookName:     bookName,
+		Author:       authorName,
+		Price:        price,
+		BookCategory: bookType,
+		Status:       bookStatus,
+		PhotoName:    handler.Filename,
+		Email:        "admin",
+	}
+	var errorMsg string
+	var flash string
+	err = m.DB.AddBook(book)
+	if err != nil {
+		log.Println(err)
+	}
+	if err == nil {
+		path := filepath.Join("static", "book")
+		fmt.Println("File Path:", path)
+
+		// Tạo thư mục nếu nó không tồn tại
+		if err := os.MkdirAll(path, os.ModePerm); err != nil {
+			http.Error(w, "Unable to create directory", http.StatusInternalServerError)
+			return
+		}
+		// Ghi file vào đường dẫn đã xây dựng
+		filePath := filepath.Join(path, handler.Filename)
+		out, err := os.Create(filePath)
+		if err != nil {
+			http.Error(w, "Unable to create file", http.StatusInternalServerError)
+			errorMsg = "Something went wrong on server"
+			return
+		}
+		defer out.Close()
+
+		// Ghi nội dung file
+		_, err = io.Copy(out, file)
+		if err != nil {
+			http.Error(w, "Unable to write file", http.StatusInternalServerError)
+			errorMsg = "Something went wrong on server"
+			return
+		}
+		fmt.Println("File written to:", filePath)
+		flash = "Sell book successfully"
+	}
+	render.Template(w, r, "admin-addbook.page.tmpl", &models.TemplateData{
+		Flash: flash,
+		Error: errorMsg,
+	})
 }

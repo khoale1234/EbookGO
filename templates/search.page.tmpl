@@ -2,47 +2,38 @@
     {{define "content"}}
         <div class="container-fluid">
 		<div class="row p-3">
-			<%
-			String search=request.getParameter("search");
-			BookImp bookImp2=new BookImp(DBconnect.getConnection());
-			List<Book_dtls> list2=bookImp2.getBookSearch(search);
-			for(Book_dtls b:list2){%>
-					<div class="col-md-3">
+		{{$User:= index .Data "User"}}
+		{{$book:= index .Data "bookSearch"}}
+		{{range $book}}
+				<div class="col-md-3">
 				<div class="card crd-ho mt-3">
 					<div class="card-body text-center">
-						<img alt="" src="all_components/book/<%=b.getPhotoName()%>" style="width:120px;height:170px" class="img-thumblin">
-						<p><%=b.getBookName() %> </p>
-						<p><%=b.getAuthor() %> </p>
-						<%
-						if(b.getBookCategory().equals("Old Book")){
-						%>
-						<p>Categories: <%=b.getBookCategory() %>
+						<img alt="" src="static/book/{{.PhotoName}}" style="width:120px;height:170px" class="img-thumblin">
+						<p>{{.BookName}}</p>
+						<p>{{.Author}}</p>
+						{{if eq .BookCategory "Old Book"}}
+						<p>Categories:{{.BookCategory}}
 						<div class="row">
-							<a href="book_detail.jsp?bid=<%=b.getBookID() %>" class="btn btn-sm btn-success col-md-6 ml-5 ">View Details</a>
-							<a href="" class="btn btn-sm btn-danger col-md-6 ml-2 "><i class="fa-solid fa-dollar-sign"></i><%=b.getPrice() %></a>
+							<a href="/book_detail/{{.BookID}}" class="btn btn-sm btn-success col-md-4 ml-1 ">View Details</a>
+							<a href="" class="btn btn-sm btn-danger col-md-6 ml-2 "><i class="fa-solid fa-dollar-sign"></i>{{.Price}}<a>
 						</div>
-						<%
-							}else{	
-						%>
-							<p>Categories: <%=b.getBookCategory() %>
+						{{else}}
+						<p>Categories:{{.BookCategory}}
 							<div class="row text-center">
-							<%
-							if(u==null){
-							%>
-								<a href="login.jsp" class="btn bnt-sm btn-danger col-md-4 ml-2 ">Add Cart</a>
-							<%}else{%>
-								<a href="cart?bid=<%=b.getBookID()%>&&uid=<%=u.getId() %>" class="btn bnt-sm btn-danger col-md-4 ml-2 ">Add Cart</a>
-							<%} %>
-							<a href="book_detail.jsp?bid=<%=b.getBookID() %>" class="btn btn-sm btn-success col-md-4 ml-1 ">View Details</a>
-							<a href="" class="btn btn-sm btn-danger col-md-4 ml-1 "><i class="fa-solid fa-dollar-sign"></i><%=b.getPrice() %></a>
+							{{if $User}}
+								<a href="login" class="btn bnt-sm btn-danger col-md-4 ml-2 ">Add Cart</a>
+							{{else}}
+								<a href="/cart?bid={{.BookID}}&&uid={{$User.ID}}" class="btn bnt-sm btn-danger col-md-4 ml-2 ">Add Cart</a>
+							{{end}}
+							<a href="/book_detail/{{.BookID}}" class="btn btn-sm btn-success col-md-4 ml-1 ">View Details</a>
+
+							<a href="" class="btn btn-sm btn-danger col-md-4 ml-1 "><i class="fa-solid fa-dollar-sign"></i>{{.Price}}</a>
 						</div>
-						<%
-						}%>
-						
+						{{end}}
 					</div>	
 			</div>
 		</div>
-			<%}%>
+			{{end}}
 		</div>
 	</div>
     {{end}}

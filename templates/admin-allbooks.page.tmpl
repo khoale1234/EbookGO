@@ -1,0 +1,36 @@
+{{template "admin" .}}
+{{define "content"}}
+    	<h3 class="text-center p-2">hello Admin</h3>
+	<table class="table table-striped">
+  <thead class="table-dark">
+    <tr>
+    	<th scope="col" >ID</th>
+      <th scope="col">Image</th>
+      <th scope="col">Book Name</th>
+      <th scope="col">Author Name</th>
+      <th scope="col">Price</th>
+      <th scope="col">Book Categories</th>
+      <th scope="col">Status</th>
+      <th scope="col">Action</th>
+    </tr>
+  </thead>
+  <tbody>
+  {{$books:=index .Data "books"}}
+  {{range $books}}
+  	<tr>
+      <td>{{.BookID}}</td>
+      <td><img src="static/book/{{.PhotoName}}" style="width: 60px;height: 80px;"></td>
+      <td>{{.BookName}}</td>
+      <td>{{.Author}}</td>
+      <td>{{.Price}}</td>
+      <td>{{.BookCategory}}</td>
+      <td>{{.Status}}</td>
+      <td>
+      	<a href="editbook?id={{.BookID}}" class="btn btn-sm btn-primary"><i class="fa-regular fa-pen-to-square"></i>Edit</a>
+      	<a href="bookdelete?id={{.BookID}}" class="btn btn-sm btn-danger" ><i class="fa-solid fa-trash"></i>Delete</a>
+      </td>
+    </tr>
+  {{end}}
+  </tbody>
+</table>
+{{end}}

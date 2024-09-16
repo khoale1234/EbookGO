@@ -24,7 +24,6 @@ func NewRenderer(a *config.AppConfig) {
 func AddDefaultData(td *models.TemplateData, r *http.Request) *models.TemplateData {
 	// Gán token CSRF
 	td.CSRFToken = nosurf.Token(r)
-
 	// Kiểm tra và khởi tạo map td.Data nếu cần
 	if td.Data == nil {
 		td.Data = make(map[string]interface{})
@@ -113,6 +112,5 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 		myCache[name] = ts
 	}
 
-	log.Println("Templates loaded into cache:", myCache)
 	return myCache, nil
 }

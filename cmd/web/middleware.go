@@ -6,7 +6,6 @@ import (
 	"Ebook/internal/repository"
 	dbrepo "Ebook/internal/repository/dprepo"
 	"context"
-	"log"
 	"net/http"
 
 	"github.com/justinas/nosurf"
@@ -56,10 +55,8 @@ func NoSurf(next http.Handler) http.Handler {
 //	}
 func (m *Repo) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Println("hello")
 		session, _ := m.App.Session.Get(r, "posty")
 		id, ok := session.Values["userId"].(int)
-		log.Println(id)
 		if !ok {
 			next.ServeHTTP(w, r)
 			return
@@ -70,7 +67,6 @@ func (m *Repo) Authenticate(next http.Handler) http.Handler {
 			return
 		}
 
-		log.Println(user)
 		ctx := context.WithValue(r.Context(), "user", user)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

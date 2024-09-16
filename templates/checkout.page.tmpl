@@ -1,20 +1,9 @@
 {{template "base" .}}
 {{define "content"}}
-    <c:if test="${ empty userobj }">
-		<c:redirect url="login.jsp"></c:redirect>
-	</c:if>
-	<c:if test="${not empty successMsg }">
-		<div class="alert alert-success" role="alert">${successMsg }</div>
-		<c:remove var="successMsg" scope="session"/>
-	</c:if>
-	<c:if test="${not empty failedMsg }">
-		<div class="alert alert-danger text-center" role="alert">${failedMsg }</div>
-		<c:remove var="failedMsg" scope="session"/>
-	</c:if>
 	<div class="container">
 		<div class="row p-2">
 			<div class="col-md-6">
-
+				{{$totalPrice:= index .Data "totalPrice"}}
 				<div class="card bg-white">
 					<div class="card-body">
 						<h3 class="text-success text-center">Your selected items:</h3>
@@ -28,30 +17,23 @@
 								</tr>
 							</thead>
 							<tbody>
-							<%
-								User u= (User)session.getAttribute("userobj");
-;								CartImp cartImp= new CartImp(DBconnect.getConnection());
-								List<Cart> cart=cartImp.getBookByUser(u.getId());
-								Double totalPrice=0.00;
-								for(Cart c : cart){
-									totalPrice=c.getTotal_price();
-							%>
+							{{$Cart:= index .Data "cart"}}
+							{{range $Cart}}
 								<tr>
-									<th scope="row"><%=c.getBookName() %></th>
-									<td><%=c.getAuthor() %></td>
-									<td><%=c.getPrice() %><i class="fa-solid fa-dollar-sign"></i></td>
+									<th scope="row">{{.BookName}}</th>
+									<td>{{.Author}}</td>
+									<td>{{.Price}}<i class="fa-solid fa-dollar-sign"></i></td>
 									<td>
-										<a href="remove_book?bid=<%=c.getBid() %>&&uid=<%=c.getUid()%>&&cid=<%=c.getCid() %>" class="btn btn-danger"><i class="fa-solid fa-trash"></i></a>
+										<a href="remove_book?bid={{.Bid}}&uid={{.Uid}}&cid={{.Cid}}" class="btn btn-danger"><i class="fa-solid fa-trash"></i></a>
 									</td>
 								</tr>
-							<%
-								}	
-							%>
+							{{end}}
 								<tr>
-									<td>Total Price</td>
+								
+									<th>Total Price</th>
 									<td></td>
+									<td>{{$totalPrice}}<i class="fa-solid fa-dollar-sign"></i>
 									<td></td>
-									<td><%=totalPrice %><i class="fa-solid fa-dollar-sign"></i>
 								</tr>
 							</tbody>
 						</table>
@@ -61,21 +43,23 @@
 			<div class="col-md-6">
 				<div class="card">
 					<div class="card-body">
+					{{$User:= index .Data "User"}}
 						<h3 class="text-success text-center">Your Details for Order</h3>
 						<form  action="order" method="post" class="row g-3 mt-2" >
-							<input type="hidden" value="${userobj.getId() }" name="id">
+							<input type="hidden" value="{{$User.ID}}" name="id">
+							<input type="hidden" value="{{$totalPrice}}" name="totalPrice">
 							<div class="col-md-6">
 								<label for="inputEmail4" class="form-label">Name</label> <input
-									type="text" class="form-control" id="inputEmail4" value="${userobj.name }" name="username">
+									type="text" class="form-control" id="inputEmail4" value="{{$User.Name}}" name="username">
 							</div>
 							<div class="col-md-6">
 								<label for="inputPassword4" class="form-label">Email</label>
-								<input type="email" class="form-control" id="inputPassword4" value="${userobj.email }" name="email">
+								<input type="email" class="form-control" id="inputPassword4" value="{{$User.Email}}" name="email">
 							</div>
 						
 							<div class="col-md-6">
 								<label for="inputEmail4" class="form-label">Phone Number</label> <input
-									type="number" class="form-control" id="inputEmail4" value="${userobj.phone_no}" name="phone">
+									type="number" class="form-control" id="inputEmail4" value="{{$User.Phone_no}}" name="phone">
 							</div>
 							<div class="col-md-6">
 								<label for="inputPassword4" class="form-label">Address</label>

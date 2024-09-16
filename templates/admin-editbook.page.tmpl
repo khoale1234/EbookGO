@@ -1,0 +1,56 @@
+{{template "admin" .}}
+{{define "content"}}
+    <div class="container">
+		<div class="row p-5">
+			<div class="col-md-4 offset-md-4">
+				<div class="card">
+					<h3 class="text-center mt-2">Book Edit</h3>
+                    	{{with .Flash}}
+							<p class="text-center text-success">{{.}}</p>
+						{{end}}
+                        	{{with .Error}}
+							<p class="text-center text-danger">{{.}}</p>
+						{{end}}
+					{{$User:= index .Data "User"}}
+                    {{$book := index .Data "book"}}
+					<div class="card-body">
+						<form action="bookedit" method="post" enctype="multipart/form-data">
+							<input type="hidden" name="bid" value="{{$book.BookID}}">
+							<div class="form-group">
+								<label for="exampleInputBookName">Book Name:</label><input
+									type="text" class="form-control" id="exampleInputBookName"
+									placeholder="Enter Book Name" required name="bname" value="{{$book.BookName}}">
+							</div>
+							<div class="form-group mt-4">
+								<label for="exampleInputAuthorName">Author Name:</label><input
+									type="text" class="form-control" id="exampleInputAuthorName"
+									placeholder="Enter Author Name" required name="Aname" value="{{$book.Author}}">
+							</div>
+							<div class="form-group mt-4">
+								<label for="exampleInputPrice">Price:</label><input type="text"
+									class="form-control" id="exampleInputPrice"
+									aria-describeby="emailHelp" placeholder="Enter Price" required
+									name="bprice" value="{{$book.Price}}">
+							</div>
+							<div class="form-group mt-4 mb-4">
+								<label for="inputState">Book Status:</label><select
+									id="inputState" name="bstatus" class="form-control">
+									{{if eq $book.Status "Active"}}
+									<option value="Active">Active
+									<option value="Inactive">Inactive
+									{{else}}
+									<option value="Inactive">Inactive
+									<option value="Active">Active
+									{{end}}
+								</select>
+							</div>
+							<div class="d-flex justify-content-center">
+								<button type="submit" class="btn btn-primary">Update</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{{end}}

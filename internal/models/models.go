@@ -8,8 +8,8 @@ type Cart struct {
 	Uid         int
 	BookName    string
 	Author      string
-	Price       float32
-	Total_price float32
+	Price       float64
+	Total_price float64
 }
 type BookOrder struct {
 	ID            int

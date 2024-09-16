@@ -68,7 +68,6 @@ func (m *postgresDBRepo) GetAllBooks() ([]models.BookDtls, error) {
 			&book.Author,
 			&book.Price,
 			&book.BookCategory,
-			&book.BookID,
 			&book.Status,
 			&book.PhotoName,
 			&book.Email,
@@ -302,11 +301,11 @@ func (m *postgresDBRepo) GetBookById(id int) (models.BookDtls, error) {
 	}
 	return book, nil
 }
-func (m *postgresDBRepo) UpdateEditBook(book models.BookDtls) error {
+func (m *postgresDBRepo) UpdateEditBook(bookName, author, status string, price float32, bookID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	query := `update bookdtsl set bookname=$1, author=$2, price=$3, status=$4 where bookId=$5`
-	_, err := m.DB.ExecContext(ctx, query, book.BookName, book.Author, book.Price, book.Status, book.BookID)
+	_, err := m.DB.ExecContext(ctx, query, bookName, author, price, status, bookID)
 	if err != nil {
 		return err
 	}
@@ -326,10 +325,10 @@ func (m *postgresDBRepo) GetBookSearch(search string) ([]models.BookDtls, error)
 	var list []models.BookDtls
 
 	query := `
-		SELECT * 
-		FROM bookdtsl 
-		WHERE (bookname LIKE ? OR author LIKE ? OR bookCategory LIKE ?) AND status = ?
-	`
+	SELECT * 
+	FROM bookdtsl 
+	WHERE (bookname LIKE $1 OR author LIKE $2 OR bookCategory LIKE $3) AND status = $4
+`
 
 	rows, err := m.DB.Query(query, "%"+search+"%", "%"+search+"%", "%"+search+"%", "Active")
 	if err != nil {
@@ -351,43 +350,39 @@ func (m *postgresDBRepo) GetBookSearch(search string) ([]models.BookDtls, error)
 
 	return list, nil
 }
-func (m *postgresDBRepo) CartAdd(c models.Cart) error {
+func (m *postgresDBRepo) GetBookByUser(id int) ([]models.Cart, float64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := `insert into cart (bid, uid, bookName, author, price, total_price) values ($1,$2,$3,$4,$5,$6)`
-	_, err := m.DB.ExecContext(ctx, query, c.Bid, c.Uid, c.BookName, c.Author, c.Price, c.Total_price)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func (m *postgresDBRepo) GetBookByUser(id int) ([]models.BookDtls, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	var books []models.BookDtls
-	query := `select * from cart where uid=$1`
+	var carts []models.Cart
+	var totalPrice float64
+
+	query := `SELECT * FROM cart WHERE uid=$1`
 	rows, err := m.DB.QueryContext(ctx, query, id)
 	if err != nil {
-		return books, err
+		return carts, totalPrice, err
 	}
+	defer rows.Close() // Đảm bảo đóng rows sau khi sử dụng
+
 	for rows.Next() {
-		var book models.BookDtls
+		var cart models.Cart
 		err := rows.Scan(
-			&book.BookID,
-			&book.BookName,
-			&book.Author,
-			&book.Price,
-			&book.BookCategory,
-			&book.Status,
-			&book.PhotoName,
-			&book.Email,
+			&cart.Cid,
+			&cart.Bid,
+			&cart.Uid,
+			&cart.BookName,
+			&cart.Author,
+			&cart.Price,
 		)
 		if err != nil {
-			return books, err
+			return carts, totalPrice, err
 		}
-		books = append(books, book)
+
+		// Cộng dồn giá trị total price
+		totalPrice += cart.Price
+		carts = append(carts, cart)
 	}
-	return books, nil
+
+	return carts, totalPrice, nil
 }
 func (m *postgresDBRepo) DeleteBookC(bid, uid, cid int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -399,11 +394,11 @@ func (m *postgresDBRepo) DeleteBookC(bid, uid, cid int) error {
 	}
 	return nil
 }
-func (m *postgresDBRepo) UpdateProfile(u models.User) error {
+func (m *postgresDBRepo) UpdateProfile(name, email, phone_no string, uid int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := `update user set name=$1,email=$2,phone_no=$3 where uid=$4`
-	_, err := m.DB.ExecContext(ctx, query, u.Name, u.Email, u.Phone_no, u.ID)
+	query := `update users set name= $1,email= $2,phone_no= $3 where uid=$4`
+	_, err := m.DB.ExecContext(ctx, query, name, email, phone_no, uid)
 	if err != nil {
 		return err
 	}
@@ -413,7 +408,7 @@ func (m *postgresDBRepo) CheckUser(email string) bool {
 	f := true
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := `select * from user where email=$1`
+	query := `select * from users where email=$1`
 	rows, _ := m.DB.QueryContext(ctx, query, email)
 	for rows.Next() {
 		f = true
@@ -482,7 +477,7 @@ func (m *postgresDBRepo) OldBookDelete(email string, category string, bid int) e
 func (m *postgresDBRepo) GetBookOrder(email string) ([]models.BookOrder, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	query := `select * from order where email =$1`
+	query := `select * from orders where email =$1`
 	var booksOrder []models.BookOrder
 	rows, err := m.DB.QueryContext(ctx, query, email)
 	if err != nil {
@@ -491,7 +486,91 @@ func (m *postgresDBRepo) GetBookOrder(email string) ([]models.BookOrder, error) 
 	for rows.Next() {
 		var book models.BookOrder
 		err = rows.Scan(
-			&book.ID,
+			&book.Orderid,
+			&book.UserName,
+			&book.Email,
+			&book.FullAddress,
+			&book.Phone_no,
+			&book.BookName,
+			&book.Author,
+			&book.Price,
+			&book.PaymentMethod,
+		)
+		if err != nil {
+			return booksOrder, err
+		}
+		booksOrder = append(booksOrder, book)
+	}
+	return booksOrder, err
+}
+func (m *postgresDBRepo) AddCart(c models.Cart) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := `insert into cart(bid,uid,bookName,author,price) values ($1,$2,$3,$4,$5)`
+	_, err := m.DB.ExecContext(ctx, query, c.Bid, c.Uid, c.BookName, c.Author, c.Price)
+	if err != nil {
+		log.Println(err)
+	}
+	return nil
+}
+func (m *postgresDBRepo) SaveOrder(orderlist []models.BookOrder) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := `insert into orders(orderid,user_name,email,address,phone,book_name,author,price,payment)
+	values($1,$2,$3,$4,$5,$6,$7,$8,$9)
+	`
+	for _, c := range orderlist {
+		_, err := m.DB.ExecContext(ctx, query,
+			c.Orderid,
+			c.UserName,
+			c.Email,
+			c.FullAddress,
+			c.Phone_no,
+			c.BookName,
+			c.Author,
+			c.Price,
+			c.PaymentMethod)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (m *postgresDBRepo) DeleteAllBookC(uid int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := `delete from cart where uid=$1`
+	_, err := m.DB.ExecContext(ctx, query, uid)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (m *postgresDBRepo) CheckPassword(uid int) string {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := `select password from users where uid=$1`
+	row := m.DB.QueryRowContext(ctx, query, uid)
+	var password string
+	err := row.Scan(&password)
+	if err != nil {
+		log.Println(err)
+		return ""
+	}
+	return password
+}
+func (m *postgresDBRepo) GetAllOrder() ([]models.BookOrder, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := `select * from orders`
+	var booksOrder []models.BookOrder
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return booksOrder, err
+	}
+	for rows.Next() {
+		var book models.BookOrder
+		err = rows.Scan(
 			&book.Orderid,
 			&book.UserName,
 			&book.Email,

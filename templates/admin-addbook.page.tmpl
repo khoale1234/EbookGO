@@ -1,0 +1,61 @@
+{{template "admin" .}}
+{{define "content"}}
+    <div class="container">
+		<div class="row p-5">
+			<div class="col-md-4 offset-md-4">
+				<div class="card">
+					<h3 class="text-center mt-2">Book Add</h3>
+						{{with .Flash}}
+							<p class="text-center text-success">{{.}}</p>
+						{{end}}
+                        	{{with .Error}}
+							<p class="text-center text-danger">{{.}}</p>
+						{{end}}
+					<div class="card-body">
+						<form action="addbook" method="post" enctype="multipart/form-data">
+							<div class="form-group">
+								<label for="exampleInputBookName">Book Name:</label><input
+									type="text" class="form-control" id="exampleInputBookName"
+									placeholder="Enter Book Name" required name="bname">
+							</div>
+							<div class="form-group mt-4">
+								<label for="exampleInputAuthorName">Author Name:</label><input
+									type="text" class="form-control" id="exampleInputAuthorName"
+									placeholder="Enter Author Name" required name="Aname">
+							</div>
+							<div class="form-group mt-4">
+								<label for="exampleInputPrice">Price:</label><input type="text"
+									class="form-control" id="exampleInputPrice"
+									aria-describeby="emailHelp" placeholder="Enter Price" required
+									name="bprice">
+							</div>
+							<div class="form-group mt-4">
+								<label for="inputState">Book Categories:</label><select
+									id="inputState" name="btype" class="form-control">
+									<option selected>--select--</option>
+									<option value="Old Book">Old Book</option>
+									<option value="New Book">New book</option>
+								</select>
+							</div>
+							<div class="form-group mt-4">
+								<label for="inputState">Book Status:</label><select
+									id="inputState" name="bstatus" class="form-control">
+									<option selected>--select--</option>
+									<option value="Active">Active
+									<option value="Inactive">Inactive
+								</select>
+							</div>
+							<div class="form-group">
+								<label for="exampleFormControlFile">Upload Photo:</label> <input
+									name="bookimg" type="file" class="form-control-file" id="exampleFormControlFile">
+							</div>
+							<div class="d-flex justify-content-center">
+								<button type="submit" class="btn btn-primary">Add</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+{{end}}
