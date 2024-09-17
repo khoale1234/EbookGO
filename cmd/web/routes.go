@@ -49,7 +49,6 @@ func routes(app *config.AppConfig) http.Handler {
 		r.Get("/allbooks", handlers.Repo.AdminAllBooks)
 		r.Get("/home", handlers.Repo.AdminHome)
 		r.Get("/order", handlers.Repo.AdminOrders)
-		r.Get("/editbook", handlers.Repo.EditBook)
 		r.Get("/bookdelete", handlers.Repo.BookDelete)
 		r.Get("/editbook", handlers.Repo.EditBook)
 		r.Post("/bookedit", handlers.Repo.PostEditBook)
