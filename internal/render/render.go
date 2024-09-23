@@ -84,7 +84,7 @@ func Template(w http.ResponseWriter, r *http.Request, tmpl string, td *models.Te
 // CreateTemplateCache creates a template cache as a map
 func CreateTemplateCache() (map[string]*template.Template, error) {
 	myCache := map[string]*template.Template{}
-	pages, err := filepath.Glob("./templates/*.page.tmpl")
+	pages, err := filepath.Glob("./templates/*/*.page.tmpl")
 	if err != nil {
 		return myCache, err
 	}
@@ -97,13 +97,13 @@ func CreateTemplateCache() (map[string]*template.Template, error) {
 		}
 
 		// Kiểm tra layout templates
-		matches, err := filepath.Glob("./templates/*.layout.tmpl")
+		matches, err := filepath.Glob("./templates/*/*.layout.tmpl")
 		if err != nil {
 			return myCache, err
 		}
 
 		if len(matches) > 0 {
-			ts, err = ts.ParseGlob("./templates/*.layout.tmpl")
+			ts, err = ts.ParseGlob("./templates/*/*.layout.tmpl")
 			if err != nil {
 				return myCache, err
 			}
