@@ -61,7 +61,7 @@ func (m *Repo) Authenticate(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		user, err := m.DB.FindUserByID(id)
+		user, err := m.DB.UserRepo().FindUserByID(id)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return

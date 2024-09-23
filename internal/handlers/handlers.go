@@ -45,20 +45,21 @@ func NewHandlers(r *Repository) {
 }
 func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 	var newbooks []models.BookDtls
-	newbooks, err := m.DB.GetSomeNewBooks()
+
+	newbooks, err := m.DB.BookRepo().GetSomeNewBooks()
 	if err != nil {
 		helpers.ServerError(w, err)
 	}
 	data := make(map[string]interface{})
 	data["newbooks"] = newbooks
 	var recentbooks []models.BookDtls
-	recentbooks, err = m.DB.GetSomeRecentBooks()
+	recentbooks, err = m.DB.BookRepo().GetSomeRecentBooks()
 	if err != nil {
 		helpers.ServerError(w, err)
 	}
 	data["recentbooks"] = recentbooks
 	var oldbooks []models.BookDtls
-	oldbooks, err = m.DB.GetSomeOldBooks()
+	oldbooks, err = m.DB.BookRepo().GetSomeOldBooks()
 	if err != nil {
 		helpers.ServerError(w, err)
 	}
@@ -72,7 +73,7 @@ func (m *Repository) Home(w http.ResponseWriter, r *http.Request) {
 
 func (m *Repository) AllNewBooks(w http.ResponseWriter, r *http.Request) {
 	var newbooks []models.BookDtls
-	newbooks, err := m.DB.GetNewBooks()
+	newbooks, err := m.DB.BookRepo().GetNewBooks()
 	if err != nil {
 		helpers.ServerError(w, err)
 	}
@@ -84,7 +85,7 @@ func (m *Repository) AllNewBooks(w http.ResponseWriter, r *http.Request) {
 }
 func (m *Repository) AllOldBooks(w http.ResponseWriter, r *http.Request) {
 	var oldbooks []models.BookDtls
-	oldbooks, err := m.DB.GetOldBooks()
+	oldbooks, err := m.DB.BookRepo().GetOldBooks()
 	if err != nil {
 		helpers.ServerError(w, err)
 	}
@@ -96,7 +97,7 @@ func (m *Repository) AllOldBooks(w http.ResponseWriter, r *http.Request) {
 }
 func (m *Repository) AllRecentBooks(w http.ResponseWriter, r *http.Request) {
 	var recentbooks []models.BookDtls
-	recentbooks, err := m.DB.GetRecentBooks()
+	recentbooks, err := m.DB.BookRepo().GetRecentBooks()
 	if err != nil {
 		helpers.ServerError(w, err)
 	}
@@ -113,7 +114,7 @@ func (m *Repository) BookDetail(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	var book models.BookDtls
-	book, err = m.DB.GetBookById(ID)
+	book, err = m.DB.BookRepo().GetBookById(ID)
 	log.Println(book)
 	if err != nil {
 		helpers.ServerError(w, err)
@@ -135,7 +136,7 @@ func (m *Repository) AddCart(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	book, err := m.DB.GetBookById(bid)
+	book, err := m.DB.BookRepo().GetBookById(bid)
 	if err != nil {
 		log.Println(err)
 		return
@@ -152,7 +153,7 @@ func (m *Repository) AddCart(w http.ResponseWriter, r *http.Request) {
 		Author:   book.Author,
 		Price:    price,
 	}
-	err = m.DB.AddCart(cart)
+	err = m.DB.CartRepo().AddCart(cart)
 	if err != nil {
 		log.Println(err)
 		return
@@ -166,7 +167,7 @@ func (m *Repository) Checkout(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "login", http.StatusSeeOther)
 	}
 	var cart []models.Cart
-	cart, totalPrice, err := m.DB.GetBookByUser(id)
+	cart, totalPrice, err := m.DB.CartRepo().GetBookByUserC(id)
 	if err != nil {
 		log.Println(err)
 		return
@@ -199,7 +200,7 @@ func (m *Repository) PostEditProfile(w http.ResponseWriter, r *http.Request) {
 	phone := r.FormValue("fphone")
 	email := r.FormValue("femail")
 	password := r.FormValue("fpassword")
-	err = bcrypt.CompareHashAndPassword([]byte(m.DB.CheckPassword(userID)), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(m.DB.UserRepo().CheckPassword(userID)), []byte(password))
 	if err != nil {
 		warning := "Wrong Password"
 		render.Template(w, r, "edit-profile.page.tmpl", &models.TemplateData{
@@ -207,7 +208,7 @@ func (m *Repository) PostEditProfile(w http.ResponseWriter, r *http.Request) {
 			Warning: warning,
 		})
 	} else {
-		err = m.DB.UpdateProfile(fullName, email, phone, userID)
+		err = m.DB.UserRepo().UpdateProfile(fullName, email, phone, userID)
 		if err != nil {
 			log.Println("loi o day ne", err)
 			errMsg := "Something wrong on server"
@@ -269,7 +270,7 @@ func (m *Repository) PostLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		http.Redirect(w, r, "/admin/home", http.StatusSeeOther)
 	} else {
-		id, _, err := m.DB.Login(email, password)
+		id, _, err := m.DB.UserRepo().Login(email, password)
 		var errMsg string
 		if err != nil {
 			log.Println(err)
@@ -297,13 +298,13 @@ func (m *Repository) OldBooks(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "login", http.StatusSeeOther)
 	}
 	var user models.User
-	user, err := m.DB.FindUserByID(id)
+	user, err := m.DB.UserRepo().FindUserByID(id)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	var oldbook []models.BookDtls
-	oldbook, err = m.DB.GetBooksByOld(user.Email, "Old Book")
+	oldbook, err = m.DB.BookRepo().GetBooksByOld(user.Email, "Old Book")
 	if err != nil {
 		log.Println(err)
 		return
@@ -348,7 +349,7 @@ func (m *Repository) PostRegister(w http.ResponseWriter, r *http.Request) {
 		Phone_no: phone,
 	}
 	log.Println(user)
-	err = m.DB.Register(user)
+	err = m.DB.UserRepo().Register(user)
 	if err != nil {
 		log.Println(err)
 		http.Redirect(w, r, "/register", http.StatusSeeOther)
@@ -424,7 +425,7 @@ func (m *Repository) PostSellBook(w http.ResponseWriter, r *http.Request) {
 		Email:        userEmail,
 	}
 
-	err = m.DB.AddBook(oldbook)
+	err = m.DB.BookRepo().AddBook(oldbook)
 	if err != nil {
 		log.Println(err)
 	}
@@ -473,7 +474,7 @@ func (m *Repository) DeleteOldBook(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	err = m.DB.OldBookDelete(email, "Old Book", bid)
+	err = m.DB.BookRepo().OldBookDelete(email, "Old Book", bid)
 	if err != nil {
 		log.Println(err)
 		return
@@ -487,12 +488,12 @@ func (m *Repository) GetOrderByUser(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		http.Redirect(w, r, "login", http.StatusSeeOther)
 	}
-	user, err := m.DB.FindUserByID(id)
+	user, err := m.DB.UserRepo().FindUserByID(id)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	orderbooks, err := m.DB.GetBookOrder(user.Email)
+	orderbooks, err := m.DB.OrderRepo().GetBookOrder(user.Email)
 	if err != nil {
 		log.Println(err)
 		return
@@ -520,7 +521,7 @@ func (m *Repository) RemoveBook(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	err = m.DB.DeleteBookC(bid, uid, cid)
+	err = m.DB.CartRepo().DeleteBookC(bid, uid, cid)
 	if err != nil {
 		log.Println(err)
 		return
@@ -558,7 +559,7 @@ func (m *Repository) Order(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fullAdd := address + ", " + city + ", " + state
-	list, _, err := m.DB.GetBookByUser(int(userID))
+	list, _, err := m.DB.CartRepo().GetBookByUserC(int(userID))
 	if err != nil {
 		log.Println(err)
 		return
@@ -588,12 +589,12 @@ func (m *Repository) Order(w http.ResponseWriter, r *http.Request) {
 			}
 			orderList = append(orderList, o)
 		}
-		err := m.DB.SaveOrder(orderList)
+		err := m.DB.OrderRepo().SaveOrder(orderList)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		err = m.DB.DeleteAllBookC(userID)
+		err = m.DB.CartRepo().DeleteAllBookC(userID)
 		if err != nil {
 			log.Println(err)
 			return
@@ -605,7 +606,7 @@ func (m *Repository) SearchBook(w http.ResponseWriter, r *http.Request) {
 	searchString := r.FormValue("search")
 	log.Println("asdasdad", searchString)
 	var bookSearch []models.BookDtls
-	bookSearch, err := m.DB.GetBookSearch(searchString)
+	bookSearch, err := m.DB.BookRepo().GetBookSearch(searchString)
 	log.Println(bookSearch)
 	if err != nil {
 		log.Println(err)
@@ -619,7 +620,7 @@ func (m *Repository) SearchBook(w http.ResponseWriter, r *http.Request) {
 }
 func (m *Repository) AdminAllBooks(w http.ResponseWriter, r *http.Request) {
 	var books []models.BookDtls
-	books, err := m.DB.GetAllBooks()
+	books, err := m.DB.BookRepo().GetAllBooks()
 	if err != nil {
 		log.Println(err)
 		return
@@ -649,7 +650,7 @@ func (m *Repository) PostEditBook(w http.ResponseWriter, r *http.Request) {
 	log.Println("hello", bookName)
 	var errMsg string
 	var flash string
-	err = m.DB.UpdateEditBook(bookName, authorName, bookStatus, float32(price), bookID)
+	err = m.DB.BookRepo().UpdateEditBook(bookName, authorName, bookStatus, float32(price), bookID)
 	if err != nil {
 		log.Println(err)
 		errMsg = "Something wrong on server"
@@ -668,7 +669,7 @@ func (m *Repository) EditBook(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	book, err := m.DB.GetBookById(bid)
+	book, err := m.DB.BookRepo().GetBookById(bid)
 	if err != nil {
 		log.Println(err)
 	}
@@ -684,7 +685,7 @@ func (m *Repository) BookDelete(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	err = m.DB.DeleteBook(bid)
+	err = m.DB.BookRepo().DeleteBook(bid)
 	if err != nil {
 		log.Println(err)
 		return
@@ -697,7 +698,7 @@ func (m *Repository) AdminOrders(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		http.Redirect(w, r, "login", http.StatusSeeOther)
 	}
-	books, err := m.DB.GetAllOrder()
+	books, err := m.DB.OrderRepo().GetAllOrder()
 	if err != nil {
 		log.Println(err)
 		return
@@ -743,7 +744,7 @@ func (m *Repository) PostAdminAddBook(w http.ResponseWriter, r *http.Request) {
 	}
 	var errorMsg string
 	var flash string
-	err = m.DB.AddBook(book)
+	err = m.DB.BookRepo().AddBook(book)
 	if err != nil {
 		log.Println(err)
 	}

@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (m *postgresDBRepo) Register(user models.User) error {
+func (r *UserRepo) Register(user models.User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
@@ -21,7 +21,7 @@ func (m *postgresDBRepo) Register(user models.User) error {
 	INSERT INTO users (name, email, phone_no, password)
 	VALUES ($1, $2, $3, $4)
 `
-	_, err = m.DB.ExecContext(ctx, query,
+	_, err = r.DB.ExecContext(ctx, query,
 		user.Name,
 		user.Email,
 		user.Phone_no,
@@ -33,12 +33,12 @@ func (m *postgresDBRepo) Register(user models.User) error {
 
 	return nil
 }
-func (m *postgresDBRepo) Login(email, testPassword string) (int, string, error) {
+func (r *UserRepo) Login(email, testPassword string) (int, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var id int
 	var hashedPassword string
-	row := m.DB.QueryRowContext(ctx, "select uid, password from users where email= $1", email)
+	row := r.DB.QueryRowContext(ctx, "select uid, password from users where email= $1", email)
 	err := row.Scan(&id, &hashedPassword)
 	if err != nil {
 		return id, " ", err
@@ -51,7 +51,59 @@ func (m *postgresDBRepo) Login(email, testPassword string) (int, string, error) 
 	}
 	return id, hashedPassword, nil
 }
-func (m *postgresDBRepo) GetAllBooks() ([]models.BookDtls, error) {
+func (r *UserRepo) CheckUser(email string) bool {
+	f := true
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := `select * from users where email=$1`
+	rows, _ := r.DB.QueryContext(ctx, query, email)
+	for rows.Next() {
+		f = true
+	}
+	return f
+}
+func (r *UserRepo) FindUserByID(id int) (models.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var user models.User
+	query := `select * from users where uid=$1`
+	row := r.DB.QueryRowContext(ctx, query, id)
+	err := row.Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.Phone_no,
+		&user.Password,
+	)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
+}
+func (r *UserRepo) UpdateProfile(name, email, phone_no string, uid int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := `update users set name= $1,email= $2,phone_no= $3 where uid=$4`
+	_, err := r.DB.ExecContext(ctx, query, name, email, phone_no, uid)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (r *UserRepo) CheckPassword(uid int) string {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	query := `select password from users where uid=$1`
+	row := r.DB.QueryRowContext(ctx, query, uid)
+	var password string
+	err := row.Scan(&password)
+	if err != nil {
+		log.Println(err)
+		return ""
+	}
+	return password
+}
+func (m *BookRepo) GetAllBooks() ([]models.BookDtls, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var books []models.BookDtls
@@ -82,7 +134,7 @@ func (m *postgresDBRepo) GetAllBooks() ([]models.BookDtls, error) {
 	}
 	return books, nil
 }
-func (m *postgresDBRepo) GetNewBooks() ([]models.BookDtls, error) {
+func (m *BookRepo) GetNewBooks() ([]models.BookDtls, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var books []models.BookDtls
@@ -113,7 +165,7 @@ func (m *postgresDBRepo) GetNewBooks() ([]models.BookDtls, error) {
 	}
 	return books, nil
 }
-func (m *postgresDBRepo) GetOldBooks() ([]models.BookDtls, error) {
+func (m *BookRepo) GetOldBooks() ([]models.BookDtls, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var books []models.BookDtls
@@ -144,7 +196,7 @@ func (m *postgresDBRepo) GetOldBooks() ([]models.BookDtls, error) {
 	}
 	return books, nil
 }
-func (m *postgresDBRepo) GetRecentBooks() ([]models.BookDtls, error) {
+func (m *BookRepo) GetRecentBooks() ([]models.BookDtls, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var books []models.BookDtls
@@ -175,7 +227,7 @@ func (m *postgresDBRepo) GetRecentBooks() ([]models.BookDtls, error) {
 	}
 	return books, nil
 }
-func (m *postgresDBRepo) GetSomeNewBooks() ([]models.BookDtls, error) {
+func (m *BookRepo) GetSomeNewBooks() ([]models.BookDtls, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var books []models.BookDtls
@@ -206,7 +258,7 @@ func (m *postgresDBRepo) GetSomeNewBooks() ([]models.BookDtls, error) {
 	}
 	return books, nil
 }
-func (m *postgresDBRepo) GetSomeOldBooks() ([]models.BookDtls, error) {
+func (m *BookRepo) GetSomeOldBooks() ([]models.BookDtls, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var books []models.BookDtls
@@ -237,7 +289,7 @@ func (m *postgresDBRepo) GetSomeOldBooks() ([]models.BookDtls, error) {
 	}
 	return books, nil
 }
-func (m *postgresDBRepo) GetSomeRecentBooks() ([]models.BookDtls, error) {
+func (m *BookRepo) GetSomeRecentBooks() ([]models.BookDtls, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var books []models.BookDtls
@@ -268,7 +320,7 @@ func (m *postgresDBRepo) GetSomeRecentBooks() ([]models.BookDtls, error) {
 	}
 	return books, nil
 }
-func (m *postgresDBRepo) AddBook(b models.BookDtls) error {
+func (m *BookRepo) AddBook(b models.BookDtls) error {
 	log.Println("hello from repo")
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -280,7 +332,7 @@ func (m *postgresDBRepo) AddBook(b models.BookDtls) error {
 
 	return nil
 }
-func (m *postgresDBRepo) GetBookById(id int) (models.BookDtls, error) {
+func (m *BookRepo) GetBookById(id int) (models.BookDtls, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	query := `select * from bookdtsl where bookId=$1`
@@ -301,7 +353,7 @@ func (m *postgresDBRepo) GetBookById(id int) (models.BookDtls, error) {
 	}
 	return book, nil
 }
-func (m *postgresDBRepo) UpdateEditBook(bookName, author, status string, price float32, bookID int) error {
+func (m *BookRepo) UpdateEditBook(bookName, author, status string, price float32, bookID int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	query := `update bookdtsl set bookname=$1, author=$2, price=$3, status=$4 where bookId=$5`
@@ -311,7 +363,7 @@ func (m *postgresDBRepo) UpdateEditBook(bookName, author, status string, price f
 	}
 	return nil
 }
-func (m *postgresDBRepo) DeleteBook(id int) error {
+func (m *BookRepo) DeleteBook(id int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	query := `delete from bookdtsl where bookId=$1`
@@ -321,7 +373,7 @@ func (m *postgresDBRepo) DeleteBook(id int) error {
 	}
 	return nil
 }
-func (m *postgresDBRepo) GetBookSearch(search string) ([]models.BookDtls, error) {
+func (m *BookRepo) GetBookSearch(search string) ([]models.BookDtls, error) {
 	var list []models.BookDtls
 
 	query := `
@@ -350,7 +402,7 @@ func (m *postgresDBRepo) GetBookSearch(search string) ([]models.BookDtls, error)
 
 	return list, nil
 }
-func (m *postgresDBRepo) GetBookByUser(id int) ([]models.Cart, float64, error) {
+func (m *CartRepo) GetBookByUserC(id int) ([]models.Cart, float64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var carts []models.Cart
@@ -384,7 +436,7 @@ func (m *postgresDBRepo) GetBookByUser(id int) ([]models.Cart, float64, error) {
 
 	return carts, totalPrice, nil
 }
-func (m *postgresDBRepo) DeleteBookC(bid, uid, cid int) error {
+func (m *CartRepo) DeleteBookC(bid, uid, cid int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	query := `delete from cart where bid=$1 and uid=$2 and cid=$3 `
@@ -394,46 +446,8 @@ func (m *postgresDBRepo) DeleteBookC(bid, uid, cid int) error {
 	}
 	return nil
 }
-func (m *postgresDBRepo) UpdateProfile(name, email, phone_no string, uid int) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	query := `update users set name= $1,email= $2,phone_no= $3 where uid=$4`
-	_, err := m.DB.ExecContext(ctx, query, name, email, phone_no, uid)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-func (m *postgresDBRepo) CheckUser(email string) bool {
-	f := true
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	query := `select * from users where email=$1`
-	rows, _ := m.DB.QueryContext(ctx, query, email)
-	for rows.Next() {
-		f = true
-	}
-	return f
-}
-func (m *postgresDBRepo) FindUserByID(id int) (models.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	var user models.User
-	query := `select * from users where uid=$1`
-	row := m.DB.QueryRowContext(ctx, query, id)
-	err := row.Scan(
-		&user.ID,
-		&user.Name,
-		&user.Email,
-		&user.Phone_no,
-		&user.Password,
-	)
-	if err != nil {
-		return user, err
-	}
-	return user, nil
-}
-func (m *postgresDBRepo) GetBooksByOld(email string, category string) ([]models.BookDtls, error) {
+
+func (m *BookRepo) GetBooksByOld(email string, category string) ([]models.BookDtls, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var books []models.BookDtls
@@ -464,7 +478,7 @@ func (m *postgresDBRepo) GetBooksByOld(email string, category string) ([]models.
 	}
 	return books, nil
 }
-func (m *postgresDBRepo) OldBookDelete(email string, category string, bid int) error {
+func (m *BookRepo) OldBookDelete(email string, category string, bid int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	query := `delete from bookdtsl where bookCategory=$1 and email=$2 and bookId=$3 `
@@ -474,7 +488,7 @@ func (m *postgresDBRepo) OldBookDelete(email string, category string, bid int) e
 	}
 	return nil
 }
-func (m *postgresDBRepo) GetBookOrder(email string) ([]models.BookOrder, error) {
+func (m *OrderRepo) GetBookOrder(email string) ([]models.BookOrder, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	query := `select * from orders where email =$1`
@@ -503,7 +517,7 @@ func (m *postgresDBRepo) GetBookOrder(email string) ([]models.BookOrder, error) 
 	}
 	return booksOrder, err
 }
-func (m *postgresDBRepo) AddCart(c models.Cart) error {
+func (m *CartRepo) AddCart(c models.Cart) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	query := `insert into cart(bid,uid,bookName,author,price) values ($1,$2,$3,$4,$5)`
@@ -513,7 +527,7 @@ func (m *postgresDBRepo) AddCart(c models.Cart) error {
 	}
 	return nil
 }
-func (m *postgresDBRepo) SaveOrder(orderlist []models.BookOrder) error {
+func (m *OrderRepo) SaveOrder(orderlist []models.BookOrder) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	query := `insert into orders(orderid,user_name,email,address,phone,book_name,author,price,payment)
@@ -536,7 +550,7 @@ func (m *postgresDBRepo) SaveOrder(orderlist []models.BookOrder) error {
 	}
 	return nil
 }
-func (m *postgresDBRepo) DeleteAllBookC(uid int) error {
+func (m *CartRepo) DeleteAllBookC(uid int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	query := `delete from cart where uid=$1`
@@ -546,20 +560,8 @@ func (m *postgresDBRepo) DeleteAllBookC(uid int) error {
 	}
 	return nil
 }
-func (m *postgresDBRepo) CheckPassword(uid int) string {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	query := `select password from users where uid=$1`
-	row := m.DB.QueryRowContext(ctx, query, uid)
-	var password string
-	err := row.Scan(&password)
-	if err != nil {
-		log.Println(err)
-		return ""
-	}
-	return password
-}
-func (m *postgresDBRepo) GetAllOrder() ([]models.BookOrder, error) {
+
+func (m *OrderRepo) GetAllOrder() ([]models.BookOrder, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	query := `select * from orders`

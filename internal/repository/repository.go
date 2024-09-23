@@ -10,7 +10,6 @@ type UserRepo interface {
 	UpdateProfile(name, email, phone_no string, uid int) error
 	CheckPassword(uid int) string
 }
-
 type BookRepo interface {
 	GetAllBooks() ([]models.BookDtls, error)
 	GetOldBooks() ([]models.BookDtls, error)
@@ -35,12 +34,12 @@ type OrderRepo interface {
 type CartRepo interface {
 	AddCart(c models.Cart) error
 	DeleteBookC(bid, uid, cid int) error
-	GetBookByUser(id int) ([]models.Cart, float64, error)
+	GetBookByUserC(id int) ([]models.Cart, float64, error)
 	DeleteAllBookC(uid int) error
 }
 type DatabaseRepo interface {
-	BookRepo
-	CartRepo
-	OrderRepo
-	UserRepo
+	UserRepo() UserRepo   // Trả về repository cho User
+	BookRepo() BookRepo   // Trả về repository cho Book
+	OrderRepo() OrderRepo // Trả về repository cho Order
+	CartRepo() CartRepo   // Trả về repository cho Cart
 }
