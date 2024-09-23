@@ -2,9 +2,16 @@ package repository
 
 import "Ebook/internal/models"
 
-type DatabaseRepo interface {
+type UserRepo interface {
 	Register(user models.User) error
 	Login(email, testPassword string) (int, string, error)
+	CheckUser(email string) bool
+	FindUserByID(id int) (models.User, error)
+	UpdateProfile(name, email, phone_no string, uid int) error
+	CheckPassword(uid int) string
+}
+
+type BookRepo interface {
 	GetAllBooks() ([]models.BookDtls, error)
 	GetOldBooks() ([]models.BookDtls, error)
 	GetNewBooks() ([]models.BookDtls, error)
@@ -16,18 +23,24 @@ type DatabaseRepo interface {
 	GetBookById(id int) (models.BookDtls, error)
 	UpdateEditBook(bookName, author, status string, price float32, bookID int) error
 	DeleteBook(id int) error
-	GetBookByUser(id int) ([]models.Cart, float64, error)
 	GetBookSearch(search string) ([]models.BookDtls, error)
-	DeleteBookC(bid, uid, cid int) error
-	CheckUser(email string) bool
-	FindUserByID(id int) (models.User, error)
 	GetBooksByOld(email string, category string) ([]models.BookDtls, error)
 	OldBookDelete(email string, category string, bid int) error
-	GetBookOrder(email string) ([]models.BookOrder, error)
-	AddCart(c models.Cart) error
+}
+type OrderRepo interface {
 	SaveOrder(orderlist []models.BookOrder) error
-	DeleteAllBookC(uid int) error
-	CheckPassword(uid int) string
-	UpdateProfile(name, email, phone_no string, uid int) error
+	GetBookOrder(email string) ([]models.BookOrder, error)
 	GetAllOrder() ([]models.BookOrder, error)
+}
+type CartRepo interface {
+	AddCart(c models.Cart) error
+	DeleteBookC(bid, uid, cid int) error
+	GetBookByUser(id int) ([]models.Cart, float64, error)
+	DeleteAllBookC(uid int) error
+}
+type DatabaseRepo interface {
+	BookRepo
+	CartRepo
+	OrderRepo
+	UserRepo
 }

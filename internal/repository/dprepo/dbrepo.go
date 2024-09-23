@@ -2,7 +2,6 @@ package dbrepo
 
 import (
 	"Ebook/internal/config"
-	"Ebook/internal/repository"
 	"database/sql"
 )
 
@@ -11,7 +10,7 @@ type postgresDBRepo struct {
 	DB  *sql.DB
 }
 
-func NewPostgresRepo(conn *sql.DB, a *config.AppConfig) repository.DatabaseRepo {
+func NewPostgresRepo(conn *sql.DB, a *config.AppConfig) *postgresDBRepo {
 	return &postgresDBRepo{
 		App: a,
 		DB:  conn,
