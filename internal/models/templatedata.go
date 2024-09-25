@@ -1,6 +1,8 @@
 package models
 
-import "Ebook/internal/forms"
+import (
+	"Ebook/internal/forms"
+)
 
 type TemplateData struct {
 	StringMap map[string]string

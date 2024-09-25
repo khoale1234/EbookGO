@@ -3,7 +3,8 @@ package main
 import (
 	"Ebook/internal/config"
 	"Ebook/internal/driver"
-	"Ebook/internal/handlers"
+	adminhandler "Ebook/internal/handlers/admin_handler"
+	userhandler "Ebook/internal/handlers/user_handler"
 	"Ebook/internal/render"
 	"fmt"
 	"log"
@@ -11,6 +12,7 @@ import (
 	"os"
 
 	"github.com/gorilla/sessions"
+	"github.com/markbates/goth/gothic"
 )
 
 const portNumber = ":8080"
@@ -49,11 +51,13 @@ func run() (*driver.DB, error) {
 	ErrorLog = log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 	app.ErrorLog = ErrorLog
 	// set up the session
-
 	session := sessions.NewCookieStore([]byte("HiOYcmnxUuj4KoQGgks63DB1DOGponWX"))
 	session.Options.HttpOnly = true
 	session.Options.SameSite = http.SameSiteLaxMode
+	gothic.Store = session
 	app.Session = *session
+	//config the gg oauth
+	config.GoogleConfig()
 	log.Println("Connecting to database ...")
 	db, err := driver.ConnectSQL("host=localhost port=5432 dbname=book_app user=postgres password=07052002")
 	log.Println("Database connected")
@@ -71,8 +75,10 @@ func run() (*driver.DB, error) {
 	app.UseCache = false
 	rep := NewRep(&app, db)
 	NewMid(rep)
-	repo := handlers.NewRepo(&app, db)
-	handlers.NewHandlers(repo)
+	repo_user := userhandler.NewUserRepository(&app, db)
+	userhandler.NewUserHandlers(repo_user)
+	repo_admin := adminhandler.NewAdminRepository(&app, db)
+	adminhandler.NewAdminHandlers(repo_admin)
 
 	render.NewRenderer(&app)
 	return db, nil
