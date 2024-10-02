@@ -35,8 +35,8 @@ type BookDtls struct {
 }
 type User struct {
 	ID       int
-	Name     string
-	Email    string
+	Name     string `json:"name"`
+	Email    string `json:"email"`
 	Password string
 	Phone_no string
 	Address  string

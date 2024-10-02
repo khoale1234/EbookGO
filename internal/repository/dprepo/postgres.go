@@ -80,6 +80,24 @@ func (r *UserRepo) FindUserByID(id int) (models.User, error) {
 	}
 	return user, nil
 }
+func (r *UserRepo) FindUserByEmail(email string) (models.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	var user models.User
+	query := `select * from users where email=$1`
+	row := r.DB.QueryRowContext(ctx, query, email)
+	err := row.Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.Phone_no,
+		&user.Password,
+	)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
+}
 func (r *UserRepo) UpdateProfile(name, email, phone_no string, uid int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

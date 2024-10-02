@@ -10,6 +10,8 @@ import (
 	"Ebook/internal/repository"
 	dbrepo "Ebook/internal/repository/dprepo"
 	"context"
+	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -82,20 +84,56 @@ func (m *UserHandler) GoogleCallBack(w http.ResponseWriter, r *http.Request) {
 
 	userData, err := io.ReadAll(resp.Body)
 	if err != nil {
-		http.Error(w, "Failed to parse user data", http.StatusInternalServerError)
-		log.Println("JSON Parsing Failed")
+		http.Error(w, "Không thể phân tích dữ liệu người dùng", http.StatusInternalServerError)
+		log.Println("Phân tích JSON thất bại")
 		return
 	}
 
-	// Set response header to return JSON
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(userData)
-	if err != nil {
-		http.Error(w, "Failed to write user data", http.StatusInternalServerError)
-		log.Println("Failed to write response")
+	// Phân tích dữ liệu JSON
+	var userInfo map[string]interface{}
+	if err := json.Unmarshal(userData, &userInfo); err != nil {
+		http.Error(w, "Không thể phân tích dữ liệu JSON", http.StatusInternalServerError)
+		log.Println("Phân tích JSON thất bại:", err)
+		return
 	}
 
+	// Lấy thông tin cần thiết
+	email, _ := userInfo["email"].(string)
+	name, _ := userInfo["name"].(string)
+
+	// Kiểm tra xem người dùng đã tồn tại chưa
+	user, err := m.DB.UserRepo().FindUserByEmail(email)
+	if err != nil {
+		// Nếu người dùng chưa tồn tại, tạo mới
+		if err == sql.ErrNoRows {
+			// Nếu người dùng chưa tồn tại, tạo mới
+			newUser := models.User{
+				Email: email,
+				Name:  name,
+			}
+			err = m.DB.UserRepo().Register(newUser)
+			if err != nil {
+				http.Error(w, "Không thể tạo người dùng mới", http.StatusInternalServerError)
+				log.Println("Tạo người dùng thất bại:", err)
+				return
+			}
+			user = newUser
+		} else {
+			http.Error(w, "Lỗi khi tìm kiếm người dùng", http.StatusInternalServerError)
+			log.Println("Tìm kiếm người dùng thất bại:", err)
+			return
+		}
+	}
+	session, _ := m.App.Session.Get(r, "posty")
+	session.Values["userId"] = user.ID
+	log.Println(session.Values["userId"])
+	err = session.Save(r, w)
+	if err != nil {
+		http.Error(w, "Không thể lưu phiên", http.StatusInternalServerError)
+		log.Println("Lưu phiên thất bại:", err)
+		return
+	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 func (m *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	render.Template(w, r, "register.page.tmpl", &models.TemplateData{})

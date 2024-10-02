@@ -9,6 +9,7 @@ type UserRepo interface {
 	FindUserByID(id int) (models.User, error)
 	UpdateProfile(name, email, phone_no string, uid int) error
 	CheckPassword(uid int) string
+	FindUserByEmail(email string) (models.User, error)
 }
 type BookRepo interface {
 	GetAllBooks() ([]models.BookDtls, error)

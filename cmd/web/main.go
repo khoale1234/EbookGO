@@ -44,6 +44,7 @@ func main() {
 	}
 }
 func run() (*driver.DB, error) {
+
 	// change this to true when in production
 	app.InProduction = false
 	InfoLog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
